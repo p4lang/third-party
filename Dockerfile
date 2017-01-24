@@ -21,6 +21,11 @@ RUN apt-get update && \
       python-dev \
       python-pip
 
+# Default to using 8 make jobs, which is appropriate for local builds. On CI
+# infrastructure it will often be best to override this.
+ARG MAKEFLAGS
+ENV MAKEFLAGS ${MAKEFLAGS:-j8}
+
 # Build nanomsg.
 # We use `-DCMAKE_INSTALL_PREFIX=/usr` because on Ubuntu 14.04 the library is
 # installed in /usr/local/lib/x86_64-linux-gnu/ by default, and for some reason

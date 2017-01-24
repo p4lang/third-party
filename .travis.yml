@@ -2,4 +2,4 @@ services:
   - docker
 
 script:
-  - docker build -t third-party .
+  - docker build --build-arg MAKEFLAGS=-j2 -t p4lang-third-party .
