@@ -56,7 +56,7 @@ RUN ./bootstrap.sh && \
                 --with-erlang=no \
                 --with-go=no \
                 --with-nodejs=no && \
-    make -j8 && \
+    make && \
     make install && \
     cd lib/py && \
     python setup.py install
