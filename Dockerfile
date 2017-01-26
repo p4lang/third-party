@@ -60,3 +60,7 @@ RUN ./bootstrap.sh && \
     make install && \
     cd lib/py && \
     python setup.py install
+
+# Clean up to reduce the size of the final image.
+WORKDIR /
+RUN rm -rf third-party
