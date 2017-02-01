@@ -6,3 +6,8 @@ intended for use in automation. The provided Dockerfile is suitable for usage as
 a base for generating Docker images for other p4lang repos.
 
 Please see the Dockerfile for the canonical installation instructions.
+
+This repository includes Google Protocol Buffers. The version we use depends on
+old releases of GTest and GMock, which are located in in `protobuf-deps`. These
+releases are out-of-date and are not suitable for use in p4lang projects; please
+use a current release for new work.
