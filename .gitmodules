@@ -7,3 +7,12 @@
 [submodule "thrift"]
 	path = thrift
 	url = https://github.com/apache/thrift.git
+[submodule "protobuf"]
+	path = protobuf
+	url = https://github.com/google/protobuf.git
+[submodule "googlemock-for-protobuf"]
+	path = protobuf-deps/googlemock
+	url = https://github.com/google/googlemock.git
+[submodule "googletest-for-protobuf"]
+	path = protobuf-deps/googletest
+	url = https://github.com/google/googletest.git

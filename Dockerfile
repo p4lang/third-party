@@ -73,3 +73,30 @@ RUN apt-get update && \
     apt-get purge -y $THRIFT_DEPS && \
     apt-get autoremove --purge -y && \
     rm -rf /thrift /var/cache/apt/* /var/lib/apt/lists/*
+
+# Build Protocol Buffers.
+# The protobuf build system normally downloads archives of GMock and GTest from
+# Github, but the CA certs included with Ubuntu 14.04 are so old that the
+# download fails TLS verification. It's just as well, because including the
+# correct versions directly in the repo is preferable anyway. These versions
+# are old, though, so they're walled off in the `protobuf-deps` directory. Our
+# own projects should use a more recent release.
+ENV PROTOCOL_BUFFERS_DEPS autoconf \
+                          automake \
+                          g++ \
+                          libtool \
+                          make
+COPY ./protobuf /protobuf/
+COPY ./protobuf-deps/googlemock /protobuf/gmock
+COPY ./protobuf-deps/googletest /protobuf/gmock/gtest
+WORKDIR /protobuf/
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends $PROTOCOL_BUFFERS_DEPS && \
+    ./autogen.sh && \
+    ./configure && \
+    make && \
+    make install && \
+    ldconfig && \
+    apt-get purge -y $PROTOCOL_BUFFERS_DEPS && \
+    apt-get autoremove --purge -y && \
+    rm -rf /thrift /var/cache/apt/* /var/lib/apt/lists/*
