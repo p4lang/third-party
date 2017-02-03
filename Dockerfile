@@ -100,3 +100,21 @@ RUN apt-get update && \
     apt-get purge -y $PROTOCOL_BUFFERS_DEPS && \
     apt-get autoremove --purge -y && \
     rm -rf /protobuf /var/cache/apt/* /var/lib/apt/lists/*
+
+# Build gRPC.
+# The gRPC build system should detect that a version of protobuf is already
+# installed and should not try to install the third-party one included as a
+# submodule in the grpc repository.
+ENV GRPC_DEPS build-essential \
+              autoconf \
+              libtool
+COPY ./grpc /grpc/
+WORKDIR /grpc/
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends $GRPC_DEPS && \
+    make && \
+    make install && \
+    ldconfig && \
+    apt-get purge -y $GRPC_DEPS && \
+    apt-get autoremove --purge -y && \
+    rm -rf /grpc /var/cache/apt/* /var/lib/apt/lists/*
