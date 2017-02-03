@@ -99,4 +99,4 @@ RUN apt-get update && \
     ldconfig && \
     apt-get purge -y $PROTOCOL_BUFFERS_DEPS && \
     apt-get autoremove --purge -y && \
-    rm -rf /thrift /var/cache/apt/* /var/lib/apt/lists/*
+    rm -rf /protobuf /var/cache/apt/* /var/lib/apt/lists/*
