@@ -20,6 +20,9 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends $NANOMSG_DEPS && \
     mkdir build && \
     cd build && \
+    export CFLAGS="-Os" && \
+    export CXXFLAGS="-Os" && \
+    export LDFLAGS="-Wl,-s" && \
     cmake .. -DCMAKE_INSTALL_PREFIX=/usr && \
     cmake --build . && \
     cmake --build . --target install && \
@@ -34,6 +37,9 @@ COPY ./nnpy /nnpy/
 WORKDIR /nnpy/
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $NNPY_DEPS $NNPY_RUNTIME_DEPS && \
+    export CFLAGS="-Os" && \
+    export CXXFLAGS="-Os" && \
+    export LDFLAGS="-Wl,-s" && \
     pip install cffi && \
     pip install . && \
     apt-get purge -y $NNPY_DEPS && \
@@ -57,6 +63,9 @@ COPY ./thrift /thrift/
 WORKDIR /thrift/
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $THRIFT_DEPS $THRIFT_RUNTIME_DEPS && \
+    export CFLAGS="-Os" && \
+    export CXXFLAGS="-Os" && \
+    export LDFLAGS="-Wl,-s" && \
     ./bootstrap.sh && \
     ./configure --with-cpp=yes \
                 --with-python=yes \
@@ -92,6 +101,9 @@ COPY ./protobuf-deps/googletest /protobuf/gmock/gtest
 WORKDIR /protobuf/
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $PROTOCOL_BUFFERS_DEPS && \
+    export CFLAGS="-Os" && \
+    export CXXFLAGS="-Os" && \
+    export LDFLAGS="-Wl,-s" && \
     ./autogen.sh && \
     ./configure && \
     make && \
@@ -112,6 +124,7 @@ COPY ./grpc /grpc/
 WORKDIR /grpc/
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $GRPC_DEPS && \
+    export LDFLAGS="-Wl,-s" && \
     make && \
     make install && \
     ldconfig && \
