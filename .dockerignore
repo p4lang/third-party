@@ -1,0 +1,55 @@
+**/.git
+**/.gitmodules
+**/.travis.yml
+**/AUTHORS
+**/BUILD
+**/CHANGES
+**/CHANGES.txt
+**/CONTRIBUTORS
+**/CONTRIBUTORS.txt
+**/COPYING
+**/Dockerfile
+**/NOTICE
+**/PATENTS
+**/README
+**/RELEASING
+**/*.md
+
+# Unnecessary files in nanomsg.
+nanomsg/demo
+nanomsg/doc
+nanomsg/rfc
+
+# Unnecessary files in thrift.
+thrift/contrib
+thrift/debian
+thrift/doc
+
+# Unnecessary files in protobuf and protobuf-deps.
+protobuf/csharp
+protobuf/docs
+protobuf/editors
+protobuf/examples
+protobuf/java
+protobuf/javanano
+protobuf/jenkins
+protobuf/js
+protobuf/more_tests
+protobuf/objectivec
+protobuf/php
+protobuf/ruby
+protobuf/WORKSPACE
+protobuf-deps/googlemock/msvc
+protobuf-deps/googlemock/test
+protobuf-deps/googletest/codegear
+protobuf-deps/googletest/msvc
+protobuf-deps/googletest/samples
+protobuf-deps/googletest/test
+protobuf-deps/googletest/xcode
+
+# Unnecessary files in grpc.
+grpc/doc
+grpc/examples
+grpc/summerofcode
+grpc/tools
+grpc/vsprojects
