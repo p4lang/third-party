@@ -26,7 +26,8 @@ RUN apt-get update && \
     cmake .. -DCMAKE_INSTALL_PREFIX=/usr && \
     cmake --build . && \
     cmake --build . --target install && \
-    apt-get remove --purge -y $NANOMSG_DEPS $(apt-mark showauto) && \
+    apt-get purge -y $NANOMSG_DEPS && \
+    apt-get autoremove --purge -y && \
     rm -rf /nanomsg /var/cache/apt/* /var/lib/apt/lists/* /var/cache/debconf/* /var/lib/dpkg/*-old /var/log/*
 
 # Build nnpy.
@@ -41,7 +42,8 @@ RUN apt-get update && \
     export LDFLAGS="-Wl,-s" && \
     pip install cffi && \
     pip install . && \
-    apt-get remove --purge -y $NNPY_DEPS $(apt-mark showauto) && \
+    apt-get purge -y $NNPY_DEPS && \
+    apt-get autoremove --purge -y && \
     rm -rf /nnpy /var/cache/apt/* /var/lib/apt/lists/* /var/cache/debconf/* /var/lib/dpkg/*-old /var/log/*
 
 # Build Thrift.
@@ -77,7 +79,8 @@ RUN apt-get update && \
     make install && \
     cd lib/py && \
     python setup.py install && \
-    apt-get remove --purge -y $THRIFT_DEPS $(apt-mark showauto) && \
+    apt-get purge -y $THRIFT_DEPS && \
+    apt-get autoremove --purge -y && \
     rm -rf /thrift /var/cache/apt/* /var/lib/apt/lists/* /var/cache/debconf/* /var/lib/dpkg/*-old /var/log/*
 
 # Build Protocol Buffers.
@@ -106,7 +109,8 @@ RUN apt-get update && \
     make && \
     make install && \
     ldconfig && \
-    apt-get remove --purge -y $PROTOCOL_BUFFERS_DEPS $(apt-mark showauto) && \
+    apt-get purge -y $PROTOCOL_BUFFERS_DEPS && \
+    apt-get autoremove --purge -y && \
     rm -rf /protobuf /var/cache/apt/* /var/lib/apt/lists/* /var/cache/debconf/* /var/lib/dpkg/*-old /var/log/*
 
 # Build gRPC.
@@ -124,5 +128,6 @@ RUN apt-get update && \
     make && \
     make install && \
     ldconfig && \
-    apt-get remove --purge -y $GRPC_DEPS $(apt-mark showauto) && \
+    apt-get purge -y $GRPC_DEPS && \
+    apt-get autoremove --purge -y && \
     rm -rf /grpc /var/cache/apt/* /var/lib/apt/lists/* /var/cache/debconf/* /var/lib/dpkg/*-old /var/log/*
