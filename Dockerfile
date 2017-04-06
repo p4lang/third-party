@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 MAINTAINER Seth Fowler <seth.fowler@barefootnetworks.com>
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -10,9 +10,6 @@ ARG MAKEFLAGS
 ENV MAKEFLAGS ${MAKEFLAGS:-j2}
 
 # Build nanomsg.
-# We use `-DCMAKE_INSTALL_PREFIX=/usr` because on Ubuntu 14.04 the library is
-# installed in /usr/local/lib/x86_64-linux-gnu/ by default, and for some reason
-# ldconfig cannot find it.
 ENV NANOMSG_DEPS build-essential cmake
 COPY ./nanomsg /nanomsg/
 WORKDIR /nanomsg/
@@ -23,7 +20,7 @@ RUN apt-get update && \
     export CFLAGS="-Os" && \
     export CXXFLAGS="-Os" && \
     export LDFLAGS="-Wl,-s" && \
-    cmake .. -DCMAKE_INSTALL_PREFIX=/usr && \
+    cmake .. && \
     cmake --build . && \
     cmake --build . --target install && \
     apt-get purge -y $NANOMSG_DEPS && \
@@ -31,7 +28,7 @@ RUN apt-get update && \
     rm -rf /nanomsg /var/cache/apt/* /var/lib/apt/lists/* /var/cache/debconf/* /var/lib/dpkg/*-old /var/log/*
 
 # Build nnpy.
-ENV NNPY_DEPS build-essential libffi-dev python-dev python-pip
+ENV NNPY_DEPS build-essential libffi-dev python-dev python-pip python-setuptools
 ENV NNPY_RUNTIME_DEPS python
 COPY ./nnpy /nnpy/
 WORKDIR /nnpy/
@@ -40,6 +37,7 @@ RUN apt-get update && \
     export CFLAGS="-Os" && \
     export CXXFLAGS="-Os" && \
     export LDFLAGS="-Wl,-s" && \
+    pip install wheel && \
     pip install cffi && \
     pip install . && \
     apt-get purge -y $NNPY_DEPS && \
