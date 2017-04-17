@@ -6,8 +6,7 @@ ENV DEBIAN_FRONTEND noninteractive
 # Default to using 2 make jobs, which is a good default for CI. If you're
 # building locally or you know there are more cores available, you may want to
 # override this.
-ARG MAKEFLAGS
-ENV MAKEFLAGS ${MAKEFLAGS:-j2}
+ARG MAKEFLAGS=-j2
 
 # Build nanomsg.
 ENV NANOMSG_DEPS build-essential cmake
