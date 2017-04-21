@@ -89,9 +89,13 @@ RUN apt-get update && \
 # own projects should use a more recent release.
 ENV PROTOCOL_BUFFERS_DEPS autoconf \
                           automake \
+                          ca-certificates \
                           g++ \
+                          libffi-dev \
                           libtool \
-                          make
+                          make \
+                          python-dev \
+                          python-setuptools
 COPY ./protobuf /protobuf/
 COPY ./protobuf-deps/googlemock /protobuf/gmock
 COPY ./protobuf-deps/googletest /protobuf/gmock/gtest
@@ -106,6 +110,8 @@ RUN apt-get update && \
     make && \
     make install && \
     ldconfig && \
+    (cd /protobuf/python && \
+     python setup.py install --cpp_implementation) && \
     apt-get purge -y $PROTOCOL_BUFFERS_DEPS && \
     apt-get autoremove --purge -y && \
     rm -rf /protobuf /var/cache/apt/* /var/lib/apt/lists/* /var/cache/debconf/* /var/lib/dpkg/*-old /var/log/*
@@ -116,7 +122,11 @@ RUN apt-get update && \
 # submodule in the grpc repository.
 ENV GRPC_DEPS build-essential \
               autoconf \
-              libtool
+              cython \
+              libtool \
+              python-dev \
+              python-pip \
+              python-setuptools
 COPY ./grpc /grpc/
 WORKDIR /grpc/
 RUN apt-get update && \
@@ -125,6 +135,8 @@ RUN apt-get update && \
     make && \
     make install && \
     ldconfig && \
+    pip install -rrequirements.txt && \
+    env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip install . && \
     apt-get purge -y $GRPC_DEPS && \
     apt-get autoremove --purge -y && \
     rm -rf /grpc /var/cache/apt/* /var/lib/apt/lists/* /var/cache/debconf/* /var/lib/dpkg/*-old /var/log/*
