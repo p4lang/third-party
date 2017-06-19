@@ -8,6 +8,18 @@ ENV DEBIAN_FRONTEND noninteractive
 # override this.
 ARG MAKEFLAGS=-j2
 
+# Build our customized version of scapy.
+ENV SCAPY_VXLAN_DEPS python-setuptools
+ENV SCAPY_VXLAN_RUNTIME_DEPS python
+COPY ./scapy-vxlan /scapy-vxlan/
+WORKDIR /scapy-vxlan/
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends $SCAPY_VXLAN_DEPS $SCAPY_VXLAN_RUNTIME_DEPS && \
+    python setup.py install && \
+    apt-get purge -y $SCAPY_VXLAN_DEPS && \
+    apt-get autoremove --purge -y && \
+    rm -rf /scapy-vxlan /var/cache/apt/* /var/lib/apt/lists/* /var/cache/debconf/* /var/lib/dpkg/*-old /var/log/*
+
 # Build nanomsg.
 ENV NANOMSG_DEPS build-essential cmake
 COPY ./nanomsg /nanomsg/
