@@ -32,6 +32,21 @@ RUN apt-get update
 RUN apt-get install -y --no-install-recommends $SCAPY_VXLAN_DEPS
 RUN python setup.py install --user
 
+# Build PTF.
+FROM ubuntu:16.04 as ptf
+ARG DEBIAN_FRONTEND=noninteractive
+ARG MAKEFLAGS=-j2
+ENV PTF_DEPS build-essential libpcap-dev python python-dev python-pip python-setuptools
+RUN mkdir -p /output/usr/local
+ENV PYTHONUSERBASE=/output/usr/local
+COPY ./ptf /ptf/
+WORKDIR /ptf/
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends $PTF_DEPS
+RUN pip install --user wheel
+RUN pip install --user pypcap
+RUN python setup.py install --user
+
 # Build nanomsg.
 FROM ubuntu:16.04 as nanomsg
 ARG DEBIAN_FRONTEND=noninteractive
@@ -184,16 +199,19 @@ MAINTAINER Seth Fowler <sfowler@barefootnetworks.com>
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 ENV SCAPY_VXLAN_RUNTIME_DEPS python-minimal
+ENV PTF_RUNTIME_DEPS libpcap-dev python-minimal tcpdump
 ENV NNPY_RUNTIME_DEPS python-minimal
 ENV THRIFT_RUNTIME_DEPS libssl1.0.0 python-minimal
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $SCAPY_VXLAN_RUNTIME_DEPS \
+                                               $PTF_RUNTIME_DEPS \
                                                $NNPY_RUNTIME_DEPS \
                                                $THRIFT_RUNTIME_DEPS
 # pip install --user will place things in site-packages, but Ubuntu expects
 # dist-packages by default, so we need to set PYTHONPATH.
 ENV PYTHONPATH /usr/local/lib/python2.7/site-packages
 COPY --from=scapy-vxlan /output/usr/local /usr/local/
+COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
 COPY --from=nnpy /output/usr/local /usr/local/
 COPY --from=thrift /output/usr/local /usr/local/
