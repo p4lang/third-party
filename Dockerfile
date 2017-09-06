@@ -19,6 +19,29 @@
 # please minimize the amount of data and the number of layers that end up in the
 # final image.
 
+# Build ccache.
+FROM ubuntu:16.04 as ccache
+ARG DEBIAN_FRONTEND=noninteractive
+ARG MAKEFLAGS=-j2
+ENV CCACHE_DEPS autoconf automake build-essential libmemcached-dev
+ENV CFLAGS="-Os"
+ENV CXXFLAGS="-Os"
+ENV LDFLAGS="-Wl,-s"
+RUN mkdir -p /output/usr/local
+ENV PYTHONUSERBASE=/output/usr/local
+COPY ./ccache /ccache/
+WORKDIR /ccache/
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends $CCACHE_DEPS
+# Tell the ccache build system not to bother with things like documentation.
+ENV RUN_FROM_BUILD_FARM=yes
+RUN ./autogen.sh
+RUN ./configure --enable-memcached
+RUN make
+# `make install` assumes that we *did* build the docs; make it happy.
+RUN touch ccache.1
+RUN make DESTDIR=/output install
+
 # Build our customized version of scapy.
 FROM ubuntu:16.04 as scapy-vxlan
 ARG DEBIAN_FRONTEND=noninteractive
@@ -198,18 +221,29 @@ FROM ubuntu:16.04
 MAINTAINER Seth Fowler <sfowler@barefootnetworks.com>
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
+ENV CCACHE_RUNTIME_DEPS libmemcached-dev
 ENV SCAPY_VXLAN_RUNTIME_DEPS python-minimal
 ENV PTF_RUNTIME_DEPS libpcap-dev python-minimal tcpdump
 ENV NNPY_RUNTIME_DEPS python-minimal
 ENV THRIFT_RUNTIME_DEPS libssl1.0.0 python-minimal
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends $SCAPY_VXLAN_RUNTIME_DEPS \
+    apt-get install -y --no-install-recommends $CCACHE_RUNTIME_DEPS \
+                                               $SCAPY_VXLAN_RUNTIME_DEPS \
                                                $PTF_RUNTIME_DEPS \
                                                $NNPY_RUNTIME_DEPS \
                                                $THRIFT_RUNTIME_DEPS
-# pip install --user will place things in site-packages, but Ubuntu expects
+# `pip install --user` will place things in site-packages, but Ubuntu expects
 # dist-packages by default, so we need to set PYTHONPATH.
 ENV PYTHONPATH /usr/local/lib/python2.7/site-packages
+# Configure ccache so that descendant containers won't need to.
+ENV CCACHE_MEMCACHED_ONLY=true
+ENV CCACHE_MEMCACHED_CONF=--SERVER=ccache
+ENV CCACHE_COMPILERCHECK=content
+ENV CCACHE_CPP2=true
+ENV CCACHE_COMPRESS=true
+ENV CCACHE_MAXSIZE=1G
+# Copy files from the build containers.
+COPY --from=ccache /output/usr/local /usr/local/
 COPY --from=scapy-vxlan /output/usr/local /usr/local/
 COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
