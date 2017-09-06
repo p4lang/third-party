@@ -231,7 +231,8 @@ RUN apt-get update && \
                                                $SCAPY_VXLAN_RUNTIME_DEPS \
                                                $PTF_RUNTIME_DEPS \
                                                $NNPY_RUNTIME_DEPS \
-                                               $THRIFT_RUNTIME_DEPS
+                                               $THRIFT_RUNTIME_DEPS && \
+    rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 # `pip install --user` will place things in site-packages, but Ubuntu expects
 # dist-packages by default, so we need to set PYTHONPATH.
 ENV PYTHONPATH /usr/local/lib/python2.7/site-packages
