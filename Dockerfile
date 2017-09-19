@@ -207,6 +207,7 @@ ENV LDFLAGS="-Wl,-s"
 RUN mkdir -p /output/usr/local
 ENV PYTHONUSERBASE=/output/usr/local
 COPY --from=protobuf /output/usr/local /usr/local/
+RUN ldconfig
 COPY ./grpc /grpc/
 WORKDIR /grpc/
 RUN apt-get update
