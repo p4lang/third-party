@@ -9,6 +9,10 @@
 #   (1) Create a new build image for it. (It should have its own FROM section.)
 #   (2) Ensure that it installs everything that should be included in the final
 #       image to `/output/usr/local`. Use DESTDIR and PYTHONUSERBASE for this.
+#       Be sure to install python packages and code using
+#       `pip install --user --ignore-installed`. If you absolutely *must* use
+#       `python setup.py install`, take a look at the protobuf build image and
+#       then reconsider.
 #   (3) Use COPY to place the contents of the build image's `/output/usr/local`
 #       in the final image.
 #   (4) If the new dependency requires that certain apt packages be installed at
@@ -46,14 +50,15 @@ RUN make DESTDIR=/output install
 FROM ubuntu:16.04 as scapy-vxlan
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
-ENV SCAPY_VXLAN_DEPS python python-setuptools
+ENV SCAPY_VXLAN_DEPS python python-pip python-setuptools
 RUN mkdir -p /output/usr/local
 ENV PYTHONUSERBASE=/output/usr/local
 COPY ./scapy-vxlan /scapy-vxlan/
 WORKDIR /scapy-vxlan/
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends $SCAPY_VXLAN_DEPS
-RUN python setup.py install --user
+RUN pip install --user --ignore-installed wheel
+RUN pip install --user --ignore-installed .
 
 # Build PTF.
 FROM ubuntu:16.04 as ptf
@@ -66,9 +71,9 @@ COPY ./ptf /ptf/
 WORKDIR /ptf/
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends $PTF_DEPS
-RUN pip install --user wheel
-RUN pip install --user pypcap
-RUN python setup.py install --user
+RUN pip install --user --ignore-installed wheel
+RUN pip install --user --ignore-installed pypcap
+RUN pip install --user --ignore-installed .
 
 # Build nanomsg.
 FROM ubuntu:16.04 as nanomsg
@@ -103,9 +108,9 @@ COPY ./nnpy /nnpy/
 WORKDIR /nnpy/
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends $NNPY_DEPS
-RUN pip install --user wheel
-RUN pip install --user cffi
-RUN pip install --user .
+RUN pip install --user --ignore-installed wheel
+RUN pip install --user --ignore-installed cffi
+RUN pip install --user --ignore-installed .
 
 # Build Thrift.
 FROM ubuntu:16.04 as thrift
@@ -123,7 +128,9 @@ ENV THRIFT_DEPS automake \
                 libtool \
                 pkg-config \
                 python \
-                python-dev
+                python-dev \
+                python-pip \
+                python-setuptools
 ENV CFLAGS="-Os"
 ENV CXXFLAGS="-Os"
 ENV LDFLAGS="-Wl,-s"
@@ -146,7 +153,7 @@ RUN ./configure --with-cpp=yes \
 RUN make
 RUN make DESTDIR=/output install-strip
 WORKDIR /thrift/lib/py/
-RUN python setup.py install --user
+RUN pip install --user --ignore-installed .
 
 # Build Protocol Buffers.
 # The protobuf build system normally downloads archives of GMock and GTest from
@@ -187,6 +194,31 @@ WORKDIR /protobuf/python/
 # version of setup.py.
 RUN mkdir -p /output/usr/local/lib/python2.7/site-packages
 RUN python setup.py install --user --cpp_implementation
+# We'll finish up the process of building protobuf below, but first, a bit of
+# explanation.
+#
+# Since we can't use `pip` with protobuf's `setup.py`, the package gets
+# installed via setuptools in an "egg" - a directory which acts as a python
+# module, but isn't a package and thus isn't automatically part of the package
+# namespace. Eggs need their contents to be added to python's `sys.path` to
+# become visible. Hooks that run early during python startup normally read
+# `setuptools.pth` and other `.pth` files and add all of the directories
+# referenced in those files to the path; egg contents are placed in those files
+# to be made available to the rest of the python installation.
+#
+# In multistage builds this doesn't work so well, because those `.pth` files can
+# easily be overwritten by other versions from a different image, and the eggs
+# we're installing here will no longer appear in `sys.path`. To work around
+# that, we just copy the contents of the existing `.pth` files into a new one
+# with a name we're sure won't be overwritten. Python will read this new `.pth`
+# file at startup and include the eggs in the path.
+#
+# If you're wondering why the `grep -v` is necessary, meditate upon the fact
+# that these files aren't merely metadata but also executable code, and
+# setuptools, by design, uses this feature to inject code into every python
+# program that runs on your system.
+WORKDIR /output/usr/local/lib/python2.7/site-packages
+RUN cat *.pth | grep -v "import sys" | sort -u > docker_protobuf.pth
 
 # Build gRPC.
 # The gRPC build system should detect that a version of protobuf is already
@@ -214,8 +246,11 @@ RUN apt-get update
 RUN apt-get install -y --no-install-recommends $GRPC_DEPS
 RUN make prefix=/output/usr/local
 RUN make prefix=/output/usr/local install
+# We don't use `--ignore-installed` here because otherwise we won't use the
+# installed version of the protobuf python package that we copied from the
+# protobuf build image.
 RUN pip install --user -rrequirements.txt
-RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip install --user .
+RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip install --user --ignore-installed .
 
 # Construct the final image.
 FROM ubuntu:16.04
@@ -227,16 +262,15 @@ ENV SCAPY_VXLAN_RUNTIME_DEPS python-minimal
 ENV PTF_RUNTIME_DEPS libpcap-dev python-minimal tcpdump
 ENV NNPY_RUNTIME_DEPS python-minimal
 ENV THRIFT_RUNTIME_DEPS libssl1.0.0 python-minimal
+ENV GRPC_RUNTIME_DEPS python-minimal python-setuptools
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $CCACHE_RUNTIME_DEPS \
                                                $SCAPY_VXLAN_RUNTIME_DEPS \
                                                $PTF_RUNTIME_DEPS \
                                                $NNPY_RUNTIME_DEPS \
-                                               $THRIFT_RUNTIME_DEPS && \
+                                               $THRIFT_RUNTIME_DEPS \
+                                               $GRPC_RUNTIME_DEPS && \
     rm -rf /var/cache/apt/* /var/lib/apt/lists/*
-# `pip install --user` will place things in site-packages, but Ubuntu expects
-# dist-packages by default, so we need to set PYTHONPATH.
-ENV PYTHONPATH /usr/local/lib/python2.7/site-packages
 # Configure ccache so that descendant containers won't need to.
 ENV CCACHE_MEMCACHED_ONLY=true
 ENV CCACHE_MEMCACHED_CONF=--SERVER=ccache
@@ -253,4 +287,9 @@ COPY --from=nnpy /output/usr/local /usr/local/
 COPY --from=thrift /output/usr/local /usr/local/
 COPY --from=protobuf /output/usr/local /usr/local/
 COPY --from=grpc /output/usr/local /usr/local/
+# `pip install --user` will place things in `site-packages`, but Ubuntu expects
+# `dist-packages` by default, so we need to set configure `site-packages` as an
+# additional "site-specific directory".
+RUN echo "import site; site.addsitedir('/usr/local/lib/python2.7/site-packages')" \
+        > /usr/local/lib/python2.7/dist-packages/use_site_packages.pth
 RUN ldconfig
