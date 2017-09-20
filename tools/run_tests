@@ -1,0 +1,23 @@
+#!/bin/bash
+THIRD_PARTY_IMAGE=${1:-p4lang-third-party:latest}
+
+EXIT_STATUS=0
+function test_python_import() {
+  echo "- Checking 'import $1'..."
+  docker run $THIRD_PARTY_IMAGE python -c "import $1"
+  if [ $? -eq 0 ]; then
+    echo "  - PASS"
+  else
+    echo "  - FAIL"
+    EXIT_STATUS=1
+  fi
+}
+
+test_python_import "scapy"
+test_python_import "ptf"
+test_python_import "nnpy"
+test_python_import "thrift"
+test_python_import "google.protobuf"
+test_python_import "grpc"
+
+exit $EXIT_STATUS
