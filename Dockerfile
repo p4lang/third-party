@@ -252,6 +252,58 @@ RUN make prefix=/output/usr/local install
 RUN pip install --user -rrequirements.txt
 RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip install --user --ignore-installed .
 
+# Build libyang
+FROM ubuntu:16.04 as libyang
+ARG DEBIAN_FRONTEND=noninteractive
+ARG MAKEFLAGS=-j2
+ENV LIBYANG_DEPS build-essential \
+                 cmake \
+                 libpcre3-dev
+ENV CFLAGS="-Os"
+ENV CXXFLAGS="-Os"
+ENV LDFLAGS="-Wl,-s"
+RUN mkdir /output
+COPY ./libyang /libyang/
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends $LIBYANG_DEPS
+WORKDIR /libyang/
+RUN mkdir build
+WORKDIR /libyang/build/
+RUN cmake ..
+RUN make DESTDIR=/output install
+
+# Build sysrepo
+FROM ubuntu:16.04 as sysrepo
+ARG DEBIAN_FRONTEND=noninteractive
+ARG MAKEFLAGS=-j2
+# protobuf-c is not installed as part of the protobuf image build above (it is a
+# separate Github repository). It seems that installing it from the package
+# manager rather than building it from source does not create any compatibility
+# issue.
+ENV SYSREPO_DEPS build-essential \
+                 cmake \
+                 libavl-dev \
+                 libev-dev \
+                 libprotobuf-c-dev \
+                 protobuf-c-compiler
+ENV CFLAGS="-Os"
+ENV CXXFLAGS="-Os"
+ENV LDFLAGS="-Wl,-s"
+RUN mkdir /output
+COPY --from=libyang /output/usr/local /usr/local/
+RUN ldconfig
+COPY ./sysrepo /sysrepo/
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends $SYSREPO_DEPS
+WORKDIR /sysrepo/
+RUN mkdir build
+WORKDIR /sysrepo/build/
+# CALL_TARGET_BINS_DIRECTLY=Off is needed here because of the use of DESTDIR
+# Without it sysrepoctl is executed at install time and assumes YANG files are
+# under /etc/sysrepo/yang
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=Off -DCALL_TARGET_BINS_DIRECTLY=Off ..
+RUN make DESTDIR=/output install
+
 # Construct the final image.
 FROM ubuntu:16.04
 MAINTAINER Seth Fowler <sfowler@barefootnetworks.com>
@@ -263,13 +315,15 @@ ENV PTF_RUNTIME_DEPS libpcap-dev python-minimal tcpdump
 ENV NNPY_RUNTIME_DEPS python-minimal
 ENV THRIFT_RUNTIME_DEPS libssl1.0.0 python-minimal
 ENV GRPC_RUNTIME_DEPS python-minimal python-setuptools
+ENV SYSREPO_RUNTIME_DEPS libpcre3 libavl1 libev4 libprotobuf-c1
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $CCACHE_RUNTIME_DEPS \
                                                $SCAPY_VXLAN_RUNTIME_DEPS \
                                                $PTF_RUNTIME_DEPS \
                                                $NNPY_RUNTIME_DEPS \
                                                $THRIFT_RUNTIME_DEPS \
-                                               $GRPC_RUNTIME_DEPS && \
+                                               $GRPC_RUNTIME_DEPS \
+                                               $SYSREPO_RUNTIME_DEPS && \
     rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 # Configure ccache so that descendant containers won't need to.
 ENV CCACHE_MEMCACHED_ONLY=true
@@ -287,6 +341,9 @@ COPY --from=nnpy /output/usr/local /usr/local/
 COPY --from=thrift /output/usr/local /usr/local/
 COPY --from=protobuf /output/usr/local /usr/local/
 COPY --from=grpc /output/usr/local /usr/local/
+COPY --from=libyang /output/usr/local /usr/local/
+COPY --from=sysrepo /output/usr/local /usr/local/
+COPY --from=sysrepo /output/etc /etc/
 # `pip install --user` will place things in `site-packages`, but Ubuntu expects
 # `dist-packages` by default, so we need to set configure `site-packages` as an
 # additional "site-specific directory".

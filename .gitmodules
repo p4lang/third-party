@@ -28,3 +28,9 @@
 [submodule "ccache"]
 	path = ccache
 	url = https://github.com/WebHare/ccache.git
+[submodule "libyang"]
+	path = libyang
+	url = https://github.com/CESNET/libyang.git
+[submodule "sysrepo"]
+	path = sysrepo
+	url = https://github.com/sysrepo/sysrepo.git
