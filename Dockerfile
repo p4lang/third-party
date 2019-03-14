@@ -190,6 +190,9 @@ RUN ./configure
 RUN make
 RUN make DESTDIR=/output install-strip
 WORKDIR /protobuf/python/
+# This has been fixed in more recent Protobuf versions, but 3.6.1 does not add
+# '--std=c++11' on Linux
+RUN sed -i "s/extra_compile_args = \[\]/extra_compile_args = \['--std=c++11'\]/" setup.py
 # We need to manually create this directory to work around a bug in protobuf's
 # version of setup.py.
 RUN mkdir -p /output/usr/local/lib/python2.7/site-packages
