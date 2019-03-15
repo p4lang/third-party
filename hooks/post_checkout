@@ -1,0 +1,3 @@
+#!/bin/bash
+# See https://forums.docker.com/t/automated-builds-with-submodules/33797
+git submodule update --init --recursive
