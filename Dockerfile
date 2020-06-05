@@ -312,13 +312,14 @@ FROM ubuntu:16.04
 MAINTAINER Seth Fowler <sfowler@barefootnetworks.com>
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
-ENV CCACHE_RUNTIME_DEPS libmemcached-dev
-ENV SCAPY_VXLAN_RUNTIME_DEPS python-minimal
-ENV PTF_RUNTIME_DEPS libpcap-dev python-minimal tcpdump
-ENV NNPY_RUNTIME_DEPS python-minimal
-ENV THRIFT_RUNTIME_DEPS libssl1.0.0 python-minimal
-ENV GRPC_RUNTIME_DEPS python-minimal python-setuptools
-ENV SYSREPO_RUNTIME_DEPS libpcre3 libavl1 libev4 libprotobuf-c1
+# Runtime dependencies
+ARG CCACHE_RUNTIME_DEPS="libmemcached-dev"
+ARG SCAPY_VXLAN_RUNTIME_DEPS="python-minimal"
+ARG PTF_RUNTIME_DEPS="libpcap-dev python-minimal tcpdump"
+ARG NNPY_RUNTIME_DEPS="python-minimal"
+ARG THRIFT_RUNTIME_DEPS="libssl1.0.0 python-minimal"
+ARG GRPC_RUNTIME_DEPS="python-minimal python-setuptools"
+ARG SYSREPO_RUNTIME_DEPS="libpcre3 libavl1 libev4 libprotobuf-c1"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $CCACHE_RUNTIME_DEPS \
                                                $SCAPY_VXLAN_RUNTIME_DEPS \
@@ -329,12 +330,7 @@ RUN apt-get update && \
                                                $SYSREPO_RUNTIME_DEPS && \
     rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 # Configure ccache so that descendant containers won't need to.
-ENV CCACHE_MEMCACHED_ONLY=true
-ENV CCACHE_MEMCACHED_CONF=--SERVER=ccache
-ENV CCACHE_COMPILERCHECK=content
-ENV CCACHE_CPP2=true
-ENV CCACHE_COMPRESS=true
-ENV CCACHE_MAXSIZE=1G
+COPY ./docker/ccache.conf /usr/local/etc/ccache.conf
 # Copy files from the build containers.
 COPY --from=ccache /output/usr/local /usr/local/
 COPY --from=scapy-vxlan /output/usr/local /usr/local/
