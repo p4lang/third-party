@@ -312,15 +312,14 @@ FROM ubuntu:16.04
 MAINTAINER Seth Fowler <sfowler@barefootnetworks.com>
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
-# Runtime dependencies
-ARG CCACHE_RUNTIME_DEPS="libmemcached-dev"
-ARG SCAPY_VXLAN_RUNTIME_DEPS="python-minimal"
-ARG PTF_RUNTIME_DEPS="libpcap-dev python-minimal tcpdump"
-ARG NNPY_RUNTIME_DEPS="python-minimal"
-ARG THRIFT_RUNTIME_DEPS="libssl1.0.0 python-minimal"
-ARG GRPC_RUNTIME_DEPS="python-minimal python-setuptools"
-ARG SYSREPO_RUNTIME_DEPS="libpcre3 libavl1 libev4 libprotobuf-c1"
-RUN apt-get update && \
+RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
+    SCAPY_VXLAN_RUNTIME_DEPS="python-minimal" && \
+    PTF_RUNTIME_DEPS="libpcap-dev python-minimal tcpdump" && \
+    NNPY_RUNTIME_DEPS="python-minimal" && \
+    THRIFT_RUNTIME_DEPS="libssl1.0.0 python-minimal" && \
+    GRPC_RUNTIME_DEPS="python-minimal python-setuptools" && \
+    SYSREPO_RUNTIME_DEPS="libpcre3 libavl1 libev4 libprotobuf-c1" && \
+    apt-get update && \
     apt-get install -y --no-install-recommends $CCACHE_RUNTIME_DEPS \
                                                $SCAPY_VXLAN_RUNTIME_DEPS \
                                                $PTF_RUNTIME_DEPS \
