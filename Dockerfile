@@ -49,8 +49,8 @@ RUN make DESTDIR=/output install
 FROM ubuntu:16.04 as scapy-vxlan
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
-ENV SCAPY_VXLAN_DEPS python python3 python-dev python3-dev \
-    python-pip python3-pip python-setuptools python3-setuptools
+ENV SCAPY_VXLAN_DEPS python python3 python-pip python3-pip \
+                     python-setuptools python3-setuptools
 RUN mkdir -p /output/usr/local
 ENV PYTHONUSERBASE=/output/usr/local
 COPY ./scapy-vxlan /scapy-vxlan/
