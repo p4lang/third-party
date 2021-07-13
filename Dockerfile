@@ -186,7 +186,9 @@ ENV PROTOCOL_BUFFERS_DEPS autoconf \
                           python-dev \
                           python3-dev \
                           python-setuptools \
-                          python3-setuptools
+                          python3-setuptools \
+                          python-pip \
+                          python3-pip
 ENV CFLAGS="-Os"
 ENV CXXFLAGS="-Os"
 ENV LDFLAGS="-Wl,-s"
@@ -202,6 +204,14 @@ RUN ./configure
 RUN make
 RUN make DESTDIR=/output install-strip
 WORKDIR /protobuf/python/
+# Protobuf is using a deprecated technique to install Python package with
+# easy install. This is causing issues since 2021-04-21. (https://discuss.python.org/t/pypi-org-recently-changed/8433)
+# We have to install pip and install six ourselves so we do not trigger the
+# broken protobuf install process.
+RUN pip install --user --ignore-installed wheel
+RUN pip3 install --user --ignore-installed wheel
+RUN pip install --user --ignore-installed six
+RUN pip3 install --user --ignore-installed six
 # This has been fixed in more recent Protobuf versions, but 3.6.1 does not add
 # '--std=c++11' on Linux
 RUN sed -i "s/extra_compile_args = \[\]/extra_compile_args = \['--std=c++11'\]/" setup.py
