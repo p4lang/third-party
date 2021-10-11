@@ -45,23 +45,6 @@ RUN make
 RUN touch ccache.1
 RUN make DESTDIR=/output install
 
-# Build our customized version of scapy.
-FROM ubuntu:16.04 as scapy-vxlan
-ARG DEBIAN_FRONTEND=noninteractive
-ARG MAKEFLAGS=-j2
-ENV SCAPY_VXLAN_DEPS python python3 python-pip python3-pip \
-                     python-setuptools python3-setuptools
-RUN mkdir -p /output/usr/local
-ENV PYTHONUSERBASE=/output/usr/local
-COPY ./scapy-vxlan /scapy-vxlan/
-WORKDIR /scapy-vxlan/
-RUN apt-get update && apt-get install -y --no-install-recommends $SCAPY_VXLAN_DEPS
-RUN pip install --user --ignore-installed wheel
-RUN pip3 install --user --ignore-installed wheel
-RUN pip install --user --ignore-installed .
-# this customized build does not support python3. Just install a recent scapy...
-RUN pip3 install --user --ignore-installed scapy
-
 # Build PTF.
 FROM ubuntu:16.04 as ptf
 ARG DEBIAN_FRONTEND=noninteractive
@@ -75,9 +58,11 @@ WORKDIR /ptf/
 RUN apt-get update && apt-get install -y --no-install-recommends $PTF_DEPS
 RUN pip install --user --ignore-installed wheel
 RUN pip3 install --user --ignore-installed wheel
+RUN pip install --user --ignore-installed -rrequirements.txt
+RUN pip3 install --user --ignore-installed -rrequirements.txt
 RUN pip install --user --ignore-installed pypcap
-RUN pip install --user --ignore-installed .
 RUN pip3 install --user --ignore-installed pypcap
+RUN pip install --user --ignore-installed .
 RUN pip3 install --user --ignore-installed .
 
 # Build nanomsg.
@@ -269,6 +254,7 @@ ENV PYTHONUSERBASE=/output/usr/local
 COPY --from=protobuf /output/usr/local /usr/local/
 RUN ldconfig
 COPY ./grpc /grpc/
+COPY ./grpc-constraints.txt /grpc/constraints.txt
 WORKDIR /grpc/
 RUN apt-get update && apt-get install -y --no-install-recommends $GRPC_DEPS
 RUN make prefix=/output/usr/local
@@ -276,8 +262,8 @@ RUN make prefix=/output/usr/local install
 # We don't use `--ignore-installed` here because otherwise we won't use the
 # installed version of the protobuf python package that we copied from the
 # protobuf build image.
-RUN pip install --user -rrequirements.txt
-RUN pip3 install --user -rrequirements.txt
+RUN pip install --user -rrequirements.txt -cconstraints.txt
+RUN pip3 install --user -rrequirements.txt -cconstraints.txt
 RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip install --user --ignore-installed .
 RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip3 install --user --ignore-installed .
 
@@ -337,7 +323,6 @@ MAINTAINER Seth Fowler <sfowler@barefootnetworks.com>
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
-    SCAPY_VXLAN_RUNTIME_DEPS="python-minimal python3-minimal" && \
     PTF_RUNTIME_DEPS="libpcap-dev python-minimal python3-minimal tcpdump" && \
     NNPY_RUNTIME_DEPS="python-minimal python3-minimal" && \
     THRIFT_RUNTIME_DEPS="libssl1.0.0 python-minimal" && \
@@ -345,7 +330,6 @@ RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
     SYSREPO_RUNTIME_DEPS="libpcre3 libavl1 libev4 libprotobuf-c1" && \
     apt-get update && \
     apt-get install -y --no-install-recommends $CCACHE_RUNTIME_DEPS \
-                                               $SCAPY_VXLAN_RUNTIME_DEPS \
                                                $PTF_RUNTIME_DEPS \
                                                $NNPY_RUNTIME_DEPS \
                                                $THRIFT_RUNTIME_DEPS \
@@ -356,7 +340,6 @@ RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
 COPY ./docker/ccache.conf /usr/local/etc/ccache.conf
 # Copy files from the build containers.
 COPY --from=ccache /output/usr/local /usr/local/
-COPY --from=scapy-vxlan /output/usr/local /usr/local/
 COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
 COPY --from=nnpy /output/usr/local /usr/local/

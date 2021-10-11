@@ -19,9 +19,6 @@
 [submodule "grpc"]
 	path = grpc
 	url = https://github.com/grpc/grpc.git
-[submodule "scapy-vxlan"]
-	path = scapy-vxlan
-	url = https://github.com/p4lang/scapy-vxlan.git
 [submodule "ptf"]
 	path = ptf
 	url = https://github.com/p4lang/ptf.git
