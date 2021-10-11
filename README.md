@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/p4lang/third-party.svg?branch=master)](https://travis-ci.org/p4lang/third-party)
+![Docker build](https://github.com/p4lang/third-party/workflows/Build%20and%20push%20latest%20image/badge.svg?branch=main&event=push)
 
 This repository contains third-party dependencies of the software in p4lang. It
 can be used to install these dependencies on your machine, but it's primarily

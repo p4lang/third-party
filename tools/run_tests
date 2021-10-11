@@ -1,5 +1,5 @@
 #!/bin/bash
-THIRD_PARTY_IMAGE=${1:-p4lang-third-party:latest}
+THIRD_PARTY_IMAGE=${1:-p4lang/third-party:latest}
 
 EXIT_STATUS=0
 function test_python_import() {
