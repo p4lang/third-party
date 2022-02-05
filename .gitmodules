@@ -10,12 +10,6 @@
 [submodule "protobuf"]
 	path = protobuf
 	url = https://github.com/google/protobuf.git
-[submodule "googlemock-for-protobuf"]
-	path = protobuf-deps/googlemock
-	url = https://github.com/google/googlemock.git
-[submodule "googletest-for-protobuf"]
-	path = protobuf-deps/googletest
-	url = https://github.com/google/googletest.git
 [submodule "grpc"]
 	path = grpc
 	url = https://github.com/grpc/grpc.git

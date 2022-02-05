@@ -24,7 +24,7 @@
 # final image.
 
 # Build ccache.
-FROM ubuntu:16.04 as ccache
+FROM ubuntu:20.04 as ccache
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 ENV CCACHE_DEPS autoconf automake build-essential libmemcached-dev
@@ -46,27 +46,22 @@ RUN touch ccache.1
 RUN make DESTDIR=/output install
 
 # Build PTF.
-FROM ubuntu:16.04 as ptf
+FROM ubuntu:20.04 as ptf
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
-ENV PTF_DEPS build-essential libpcap-dev python python3 python-dev python3-dev \
-    python-pip python3-pip python-setuptools python3-setuptools
+ENV PTF_DEPS build-essential libpcap-dev python3 python3-dev python3-pip python3-setuptools
 RUN mkdir -p /output/usr/local
 ENV PYTHONUSERBASE=/output/usr/local
 COPY ./ptf /ptf/
 WORKDIR /ptf/
 RUN apt-get update && apt-get install -y --no-install-recommends $PTF_DEPS
-RUN pip install --user --ignore-installed wheel
 RUN pip3 install --user --ignore-installed wheel
-RUN pip install --user --ignore-installed -rrequirements.txt
 RUN pip3 install --user --ignore-installed -rrequirements.txt
-RUN pip install --user --ignore-installed pypcap
 RUN pip3 install --user --ignore-installed pypcap
-RUN pip install --user --ignore-installed .
 RUN pip3 install --user --ignore-installed .
 
 # Build nanomsg.
-FROM ubuntu:16.04 as nanomsg
+FROM ubuntu:20.04 as nanomsg
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 ENV NANOMSG_DEPS build-essential cmake
@@ -83,11 +78,10 @@ RUN cmake ..
 RUN make DESTDIR=/output install
 
 # Build nnpy.
-FROM ubuntu:16.04 as nnpy
+FROM ubuntu:20.04 as nnpy
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
-ENV NNPY_DEPS build-essential libffi-dev python python3 python-dev python3-dev \
-    python-pip python3-pip python-setuptools python3-setuptools
+ENV NNPY_DEPS build-essential libffi-dev python3 python3-dev python3-pip python3-setuptools
 ENV CFLAGS="-Os"
 ENV CXXFLAGS="-Os"
 ENV LDFLAGS="-Wl,-s"
@@ -97,15 +91,12 @@ COPY --from=nanomsg /output/usr/local /usr/local/
 COPY ./nnpy /nnpy/
 WORKDIR /nnpy/
 RUN apt-get update && apt-get install -y --no-install-recommends $NNPY_DEPS
-RUN pip install --user --ignore-installed wheel
 RUN pip3 install --user --ignore-installed wheel
-RUN pip install --user --ignore-installed cffi
-RUN pip install --user --ignore-installed .
 RUN pip3 install --user --ignore-installed cffi
 RUN pip3 install --user --ignore-installed .
 
 # Build Thrift.
-FROM ubuntu:16.04 as thrift
+FROM ubuntu:20.04 as thrift
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 ENV THRIFT_DEPS automake \
@@ -115,17 +106,12 @@ ENV THRIFT_DEPS automake \
                 libboost-dev \
                 libboost-test-dev \
                 libevent-dev \
-                libssl1.0.0 \
                 libssl-dev \
                 libtool \
                 pkg-config \
-                python \
                 python3 \
-                python-dev \
                 python3-dev \
-                python-pip \
                 python3-pip \
-                python-setuptools \
                 python3-setuptools
 ENV CFLAGS="-Os"
 ENV CXXFLAGS="-Os"
@@ -148,17 +134,10 @@ RUN ./configure --with-cpp=yes \
 RUN make
 RUN make DESTDIR=/output install-strip
 WORKDIR /thrift/lib/py/
-RUN pip install --user --ignore-installed .
 RUN pip3 install --user --ignore-installed .
 
 # Build Protocol Buffers.
-# The protobuf build system normally downloads archives of GMock and GTest from
-# Github, but the CA certs included with Ubuntu 14.04 are so old that the
-# download fails TLS verification. It's just as well, because including the
-# correct versions directly in the repo is preferable anyway. These versions
-# are old, though, so they're walled off in the `protobuf-deps` directory. Our
-# own projects should use a more recent release.
-FROM ubuntu:16.04 as protobuf
+FROM ubuntu:20.04 as protobuf
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 ENV PROTOCOL_BUFFERS_DEPS autoconf \
@@ -168,11 +147,8 @@ ENV PROTOCOL_BUFFERS_DEPS autoconf \
                           libffi-dev \
                           libtool \
                           make \
-                          python-dev \
                           python3-dev \
-                          python-setuptools \
                           python3-setuptools \
-                          python-pip \
                           python3-pip
 ENV CFLAGS="-Os"
 ENV CXXFLAGS="-Os"
@@ -180,8 +156,6 @@ ENV LDFLAGS="-Wl,-s"
 RUN mkdir -p /output/usr/local
 ENV PYTHONUSERBASE=/output/usr/local
 COPY ./protobuf /protobuf/
-COPY ./protobuf-deps/googlemock /protobuf/gmock
-COPY ./protobuf-deps/googletest /protobuf/gmock/gtest
 WORKDIR /protobuf/
 RUN apt-get update && apt-get install -y --no-install-recommends $PROTOCOL_BUFFERS_DEPS
 RUN ./autogen.sh
@@ -193,17 +167,9 @@ WORKDIR /protobuf/python/
 # easy install. This is causing issues since 2021-04-21. (https://discuss.python.org/t/pypi-org-recently-changed/8433)
 # We have to install pip and install six ourselves so we do not trigger the
 # broken protobuf install process.
-RUN pip install --user --ignore-installed wheel
 RUN pip3 install --user --ignore-installed wheel
-RUN pip install --user --ignore-installed six
 RUN pip3 install --user --ignore-installed six
-# This has been fixed in more recent Protobuf versions, but 3.6.1 does not add
-# '--std=c++11' on Linux
-RUN sed -i "s/extra_compile_args = \[\]/extra_compile_args = \['--std=c++11'\]/" setup.py
-# We need to manually create this directory to work around a bug in protobuf's
-# version of setup.py.
-RUN mkdir -p /output/usr/local/lib/python2.7/site-packages
-RUN python setup.py install --user --cpp_implementation
+RUN python3 setup.py install --user --cpp_implementation
 # We'll finish up the process of building protobuf below, but first, a bit of
 # explanation.
 #
@@ -227,26 +193,24 @@ RUN python setup.py install --user --cpp_implementation
 # that these files aren't merely metadata but also executable code, and
 # setuptools, by design, uses this feature to inject code into every python
 # program that runs on your system.
-WORKDIR /output/usr/local/lib/python2.7/site-packages
-RUN cat *.pth | grep -v "import sys" | sort -u > docker_protobuf.pth
+RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
+    cd /output/usr/local/lib/$PYTHON3_VERSION/site-packages&& \
+    cat *.pth | grep -v "import sys" | sort -u > docker_protobuf.pth
 
 # Build gRPC.
 # The gRPC build system should detect that a version of protobuf is already
 # installed and should not try to install the third-party one included as a
 # submodule in the grpc repository.
-FROM ubuntu:16.04 as grpc
+FROM ubuntu:20.04 as grpc
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
-ENV GRPC_DEPS autoconf \
-              automake \
-              build-essential \
+ENV GRPC_DEPS build-essential \
+              cmake \
               cython \
+              libssl-dev \
               libtool \
-              python-dev \
               python3-dev \
-              python-pip \
               python3-pip \
-              python-setuptools \
               python3-setuptools
 ENV LDFLAGS="-Wl,-s"
 RUN mkdir -p /output/usr/local
@@ -254,21 +218,33 @@ ENV PYTHONUSERBASE=/output/usr/local
 COPY --from=protobuf /output/usr/local /usr/local/
 RUN ldconfig
 COPY ./grpc /grpc/
-COPY ./grpc-constraints.txt /grpc/constraints.txt
 WORKDIR /grpc/
 RUN apt-get update && apt-get install -y --no-install-recommends $GRPC_DEPS
-RUN make prefix=/output/usr/local
-RUN make prefix=/output/usr/local install
+# See https://github.com/grpc/grpc/blob/master/BUILDING.md
+RUN mkdir -p cmake/build
+WORKDIR /grpc/cmake/build/
+RUN cmake ../.. \
+    -DgRPC_INSTALL=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DgRPC_PROTOBUF_PROVIDER=package \
+    -DgRPC_SSL_PROVIDER=package
+RUN make DESTDIR=/output install
+WORKDIR /grpc/
+# `pip install --user` will place things in `site-packages`, but Ubuntu expects
+# `dist-packages` by default, so we need to set configure `site-packages` as an
+# additional "site-specific directory".
+# Without this, our earlier installation of Protobuf will be ignored.
+RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
+  echo "import site; site.addsitedir('/usr/local/lib/$PYTHON3_VERSION/site-packages')" \
+    > /usr/local/lib/$PYTHON3_VERSION/dist-packages/use_site_packages.pth
 # We don't use `--ignore-installed` here because otherwise we won't use the
 # installed version of the protobuf python package that we copied from the
 # protobuf build image.
-RUN pip install --user -rrequirements.txt -cconstraints.txt
-RUN pip3 install --user -rrequirements.txt -cconstraints.txt
-RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip install --user --ignore-installed .
+RUN pip3 install --user -rrequirements.txt
 RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip3 install --user --ignore-installed .
 
 # Build libyang
-FROM ubuntu:16.04 as libyang
+FROM ubuntu:20.04 as libyang
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 ENV LIBYANG_DEPS build-essential \
@@ -287,7 +263,7 @@ RUN cmake ..
 RUN make DESTDIR=/output install
 
 # Build sysrepo
-FROM ubuntu:16.04 as sysrepo
+FROM ubuntu:20.04 as sysrepo
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 # protobuf-c is not installed as part of the protobuf image build above (it is a
@@ -318,15 +294,15 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=Off -DCALL_TARGET_BINS_DIR
 RUN make DESTDIR=/output install
 
 # Construct the final image.
-FROM ubuntu:16.04
-MAINTAINER Seth Fowler <sfowler@barefootnetworks.com>
+FROM ubuntu:20.04
+LABEL maintainer="P4 Developers <p4-dev@lists.p4.org>"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
-    PTF_RUNTIME_DEPS="libpcap-dev python-minimal python3-minimal tcpdump" && \
-    NNPY_RUNTIME_DEPS="python-minimal python3-minimal" && \
-    THRIFT_RUNTIME_DEPS="libssl1.0.0 python-minimal" && \
-    GRPC_RUNTIME_DEPS="python-minimal python-setuptools python3-minimal python3-setuptools" && \
+    PTF_RUNTIME_DEPS="libpcap-dev python3-minimal tcpdump" && \
+    NNPY_RUNTIME_DEPS="python3-minimal" && \
+    THRIFT_RUNTIME_DEPS="libssl1.1 python3-minimal" && \
+    GRPC_RUNTIME_DEPS="libssl-dev python3-minimal python3-setuptools" && \
     SYSREPO_RUNTIME_DEPS="libpcre3 libavl1 libev4 libprotobuf-c1" && \
     apt-get update && \
     apt-get install -y --no-install-recommends $CCACHE_RUNTIME_DEPS \
@@ -355,8 +331,8 @@ COPY --from=sysrepo /output/etc /etc/
 RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
   echo "import site; site.addsitedir('/usr/local/lib/$PYTHON3_VERSION/site-packages')" \
     > /usr/local/lib/$PYTHON3_VERSION/dist-packages/use_site_packages.pth
-RUN export PYTHON2_VERSION=`python2 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
-  echo "import site; site.addsitedir('/usr/local/lib/$PYTHON2_VERSION/site-packages')" \
-    > /usr/local/lib/$PYTHON2_VERSION/dist-packages/use_site_packages.pth
+
+RUN ln -sf /usr/bin/python3 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip
 
 RUN ldconfig

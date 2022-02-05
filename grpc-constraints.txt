@@ -1,2 +1,0 @@
-# There seems to be installation failures for coverage 6.0 with both pip and pip3
-coverage==5.5
