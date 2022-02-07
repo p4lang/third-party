@@ -1,11 +1,15 @@
 # Shared Dockerfile for third party dependencies used in projects in the p4lang
 # organization.
 #
-# Because multi-stage builds are relatively new and best practices aren't yet
-# well established (as of this writing, at least), it's probably worth
-# explaining the approach used in this Dockerfile. This Dockerfile creates a
-# separate image for each third party dependency and then copies the binaries to
-# a single output image at the end. If you add a new dependency, please:
+# Best practices for multi-stage builds are available at
+# https://docs.docker.com/develop/develop-images/dockerfile_best-practices/
+#
+# The approach used in this Dockerfile is as follows:
+#
+# A multi-stage build creates a separate image for each third party dependency and
+# then copies only the binaries to a single output image at the end.
+#
+# If you add a new dependency, please:
 #   (1) Create a new build image for it. (It should have its own FROM section.)
 #   (2) Ensure that it installs everything that should be included in the final
 #       image to `/output/usr/local`. Use DESTDIR and PYTHONUSERBASE for this.
@@ -19,8 +23,9 @@
 #       runtime (as opposed to at build time), create a new _DEPS variable and
 #       install the new packages with all of the others; look at how the final
 #       image is constructed and you'll understand the pattern.
-# In general you don't have to worry about efficiency in the build images, but
-# please minimize the amount of data and the number of layers that end up in the
+#
+# In general you don't have to worry about the size of intermediate build images,
+# but please minimize the amount of data and the number of layers that end up in the
 # final image.
 
 # Build ccache.
