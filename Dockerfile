@@ -310,7 +310,8 @@ RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
                                                $NNPY_RUNTIME_DEPS \
                                                $THRIFT_RUNTIME_DEPS \
                                                $GRPC_RUNTIME_DEPS \
-                                               $SYSREPO_RUNTIME_DEPS && \
+                                               $SYSREPO_RUNTIME_DEPS \
+                                               python-is-python3 && \
     rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 # Configure ccache so that descendant containers won't need to.
 COPY ./docker/ccache.conf /usr/local/etc/ccache.conf
@@ -331,8 +332,5 @@ COPY --from=sysrepo /output/etc /etc/
 RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
   echo "import site; site.addsitedir('/usr/local/lib/$PYTHON3_VERSION/site-packages')" \
     > /usr/local/lib/$PYTHON3_VERSION/dist-packages/use_site_packages.pth
-
-RUN ln -sf /usr/bin/python3 /usr/bin/python && \
-    ln -sf /usr/bin/pip3 /usr/bin/pip
 
 RUN ldconfig
