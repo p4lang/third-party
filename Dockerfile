@@ -224,7 +224,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=Off -DCALL_TARGET_BINS_DIR
 # Construct the final image.
 FROM ubuntu:20.04
 LABEL maintainer="P4 Developers <p4-dev@lists.p4.org>"
-ARG DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
     PTF_RUNTIME_DEPS="libpcap-dev python3-minimal tcpdump" && \
