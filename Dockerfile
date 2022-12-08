@@ -56,12 +56,10 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
         libmemcached-dev \
         libpcap-dev \
         libpcre3-dev \
-        libprotobuf-c-dev \
         libssl-dev \
         libtool \
         make \
         pkg-config \
-        protobuf-c-compiler \
         python3 \
         python3-dev \
         python3-pip \
@@ -136,38 +134,7 @@ RUN ./autogen.sh && \
     make && \
     make DESTDIR=/output install-strip
 WORKDIR /protobuf/python/
-# Protobuf is using a deprecated technique to install Python package with
-# easy install. This is causing issues since 2021-04-21. (https://discuss.python.org/t/pypi-org-recently-changed/8433)
-# We have to install pip and install six ourselves so we do not trigger the
-# broken protobuf install process.
-RUN pip3 install --user --ignore-installed wheel six && \
-    python3 setup.py install --user --cpp_implementation
-# We'll finish up the process of building protobuf below, but first, a bit of
-# explanation.
-#
-# Since we can't use `pip` with protobuf's `setup.py`, the package gets
-# installed via setuptools in an "egg" - a directory which acts as a python
-# module, but isn't a package and thus isn't automatically part of the package
-# namespace. Eggs need their contents to be added to python's `sys.path` to
-# become visible. Hooks that run early during python startup normally read
-# `setuptools.pth` and other `.pth` files and add all of the directories
-# referenced in those files to the path; egg contents are placed in those files
-# to be made available to the rest of the python installation.
-#
-# In multistage builds this doesn't work so well, because those `.pth` files can
-# easily be overwritten by other versions from a different image, and the eggs
-# we're installing here will no longer appear in `sys.path`. To work around
-# that, we just copy the contents of the existing `.pth` files into a new one
-# with a name we're sure won't be overwritten. Python will read this new `.pth`
-# file at startup and include the eggs in the path.
-#
-# If you're wondering why the `grep -v` is necessary, meditate upon the fact
-# that these files aren't merely metadata but also executable code, and
-# setuptools, by design, uses this feature to inject code into every python
-# program that runs on your system.
-RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
-    cd /output/usr/local/lib/$PYTHON3_VERSION/site-packages&& \
-    cat *.pth | grep -v "import sys" | sort -u > docker_protobuf.pth
+RUN python3 setup.py install --user --cpp_implementation
 
 # Build gRPC.
 # The gRPC build system should detect that a version of protobuf is already
@@ -187,18 +154,6 @@ RUN cmake ../.. \
       -DgRPC_SSL_PROVIDER=package && \
     make DESTDIR=/output install
 WORKDIR /grpc/
-# `pip install --user` will place things in `site-packages`, but Ubuntu expects
-# `dist-packages` by default, so we need to set configure `site-packages` as an
-# additional "site-specific directory".
-# Without this, our earlier installation of Protobuf will be ignored.
-RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
-  echo "import site; site.addsitedir('/usr/local/lib/$PYTHON3_VERSION/site-packages')" \
-    > /usr/local/lib/$PYTHON3_VERSION/dist-packages/use_site_packages.pth
-# We don't use `--ignore-installed` here because otherwise we won't use the
-# installed version of the protobuf python package that we copied from the
-# protobuf build image.
-RUN pip3 install --user -rrequirements.txt
-RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip3 install --user --ignore-installed .
 
 # Build libyang
 FROM base-builder as libyang
