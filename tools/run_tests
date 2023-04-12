@@ -18,6 +18,7 @@ test_python_import "ptf"
 test_python_import "nnpy"
 test_python_import "thrift"
 test_python_import "google.protobuf"
+test_python_import "google.rpc"
 test_python_import "grpc"
 
 exit $EXIT_STATUS

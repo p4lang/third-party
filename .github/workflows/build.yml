@@ -9,15 +9,15 @@ on:
     branches:
       - main
       - stable
-  schedule:
-    # We run it once a week as we deem it sufficient to pick up updates to the
-    # base Ubuntu image.
-    # Note that this will only update the 'latest' tag (not the 'stable' tag) as
-    # these scheduled jobs run for the default branch, which is 'main'. It is
-    # not clear how much the 'stable' tag is used at the moment; if we want the
-    # 'stable' tag to be updated automatically as well, we can find a
-    # workaround.
-    - cron: '15 1 * * 0' # "At 01:15 on Sunday."
+  # schedule:
+  #   # We run it once a week as we deem it sufficient to pick up updates to the
+  #   # base Ubuntu image.
+  #   # Note that this will only update the 'latest' tag (not the 'stable' tag) as
+  #   # these scheduled jobs run for the default branch, which is 'main'. It is
+  #   # not clear how much the 'stable' tag is used at the moment; if we want the
+  #   # 'stable' tag to be updated automatically as well, we can find a
+  #   # workaround.
+  #   - cron: '15 1 * * 0' # "At 01:15 on Sunday."
 
 jobs:
   build:
