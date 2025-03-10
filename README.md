@@ -1,5 +1,6 @@
 ![Docker build](https://github.com/p4lang/third-party/workflows/Build%20and%20push%20latest%20image/badge.svg?branch=main&event=push)
 
+
 This repository contains third-party dependencies of the software in p4lang. It
 can be used to install these dependencies on your machine, but it's primarily
 intended for use in automation. The provided Dockerfile is suitable for usage as
