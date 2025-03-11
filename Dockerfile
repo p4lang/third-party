@@ -97,7 +97,8 @@ RUN cd / && \
     source /output/usr/local/bin/activate && \
     python3 -m pip install --upgrade pip && \
     python3 -m pip install wheel && \
-    python3 -m pip install .
+    python3 -m pip install . && \
+    python3 -m pip install scapy==2.5.0
 
 # Build nanomsg.
 FROM base-builder AS nanomsg
