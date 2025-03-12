@@ -212,7 +212,7 @@ RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
     PTF_RUNTIME_DEPS="libpcap-dev python3-minimal tcpdump" && \
     NNPY_RUNTIME_DEPS="python3-minimal" && \
     THRIFT_RUNTIME_DEPS="python3-minimal" && \
-    GRPC_RUNTIME_DEPS="libssl-dev python3-minimal python3-setuptools" && \
+    GRPC_RUNTIME_DEPS="libssl-dev python3-minimal python3-setuptools libre2-dev" && \
     SYSREPO_RUNTIME_DEPS="libpcre3 libavl1 libev4 libprotobuf-c1" && \
     apt-get update && \
     apt-get install -y --no-install-recommends $CCACHE_RUNTIME_DEPS \
