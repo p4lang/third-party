@@ -29,14 +29,13 @@
 # final image.
 
 # Create an image with tools used as a base for the next layers
-FROM ubuntu:20.04 as base-builder
+FROM ubuntu:24.04 AS base-builder
 ARG MAKEFLAGS=-j2
 ENV DEBIAN_FRONTEND=noninteractive \
     CFLAGS="-Os" \
     CXXFLAGS="-Os" \
     LDFLAGS="-Wl,-s" \
-    PYTHONUSERBASE=/output/usr/local \
-    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/output/usr/local/lib/
+    LD_LIBRARY_PATH=/output/usr/local/lib/
 RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
         autoconf \
         automake \
@@ -44,9 +43,9 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
         build-essential \
         ca-certificates \
         cmake \
-        cython \
         flex \
         g++ \
+        git \
         libavl-dev \
         libboost-dev \
         libboost-test-dev \
@@ -57,25 +56,26 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
         libpcap-dev \
         libpcre3-dev \
         libprotobuf-c-dev \
-        libssl-dev \
         libtool \
         make \
         pkg-config \
         protobuf-c-compiler \
         python3 \
         python3-dev \
-        python3-pip \
-        python3-setuptools && \
+        python3-venv && \
     ldconfig && \
-    mkdir -p /output/usr/local
+    mkdir -p /output/usr/local && \
+    python3 -m venv /output/usr/local
 
 # Build ccache.
-FROM base-builder as ccache
+FROM base-builder AS ccache
 ENV RUN_FROM_BUILD_FARM=yes
-COPY ./ccache /ccache/
-WORKDIR /ccache/
 # Tell the ccache build system not to bother with things like documentation.
-RUN ./autogen.sh && \
+RUN cd / && \
+    git clone https://github.com/WebHare/ccache && \
+    cd ccache && \
+    git checkout 969cd90dc998eb4b197f15544ee0dee95f96a946 && \
+    ./autogen.sh && \
     ./configure --enable-memcached && \
     make && \
 # `make install` assumes that we *did* build the docs; make it happy.
@@ -83,38 +83,58 @@ RUN ./autogen.sh && \
     make DESTDIR=/output install
 
 # Build PTF.
-FROM base-builder as ptf
-COPY ./ptf /ptf/
-WORKDIR /ptf/
-RUN pip3 install --user --ignore-installed wheel pypcap && \
-    pip3 install --user --ignore-installed -rrequirements.txt && \
-    pip3 install --user --ignore-installed .
+FROM base-builder AS ptf
+WORKDIR /
+SHELL ["/bin/bash", "-c"]
+RUN cd / && \
+    git clone https://github.com/p4lang/ptf && \
+    cd ptf && \
+    git checkout 8e0fdf8b214422ea6db6c6b41042160b9be2d8c3 && \
+    source /output/usr/local/bin/activate && \
+    python3 -m pip install --upgrade pip && \
+    python3 -m pip install wheel && \
+    python3 -m pip install . && \
+    python3 -m pip install scapy==2.5.0
 
 # Build nanomsg.
-FROM base-builder as nanomsg
-COPY ./nanomsg /nanomsg/
-RUN mkdir -p /nanomsg/build/
-WORKDIR /nanomsg/build/
-RUN cmake .. && \
+FROM base-builder AS nanomsg
+WORKDIR /
+RUN cd / && \
+    git clone https://github.com/nanomsg/nanomsg && \
+    cd nanomsg && \
+    git checkout 096998834451219ee7813d8977f6a4027b0ccb43 && \
+    mkdir -p /nanomsg/build && \
+    cd /nanomsg/build && \
+    cmake .. && \
     make DESTDIR=/output install
 
 # Build nnpy.
-FROM base-builder as nnpy
+FROM base-builder AS nnpy
 COPY --from=nanomsg /output/usr/local /usr/local/
-COPY ./nnpy /nnpy/
-WORKDIR /nnpy/
-RUN ldconfig && \
-    pip3 install --user --ignore-installed wheel cffi && \
-    pip3 install --user --ignore-installed .
+WORKDIR /
+SHELL ["/bin/bash", "-c"]
+RUN cd / && \
+    git clone https://github.com/nanomsg/nnpy && \
+    cd nnpy && \
+    git checkout 1.4.2 && \
+    source /output/usr/local/bin/activate && \
+    ldconfig && \
+    python3 -m pip install wheel cffi && \
+    python3 -m pip install .
 
 # Build Thrift.
-FROM base-builder as thrift
-COPY ./thrift /thrift/
-WORKDIR /thrift/
-RUN ./bootstrap.sh && \
+FROM base-builder AS thrift
+WORKDIR /
+SHELL ["/bin/bash", "-c"]
+RUN cd / && \
+    git clone https://github.com/apache/thrift && \
+    cd thrift && \
+    git checkout v0.16.0 && \
+    source /output/usr/local/bin/activate && \
+    ./bootstrap.sh && \
     ./configure \
         --with-cpp=yes \
-        --with-python=yes \
+        --with-python=no \
         --with-c_glib=no \
         --with-java=no \
         --with-ruby=no \
@@ -122,98 +142,74 @@ RUN ./bootstrap.sh && \
         --with-go=no \
         --with-nodejs=no \
         --enable-tests=no && \
-    make  && \
-    make DESTDIR=/output install-strip
-WORKDIR /thrift/lib/py/
-RUN pip3 install --user --ignore-installed .
+    make && \
+    make DESTDIR=/output install-strip && \
+    python3 -m pip install thrift==0.16.0
 
 # Build Protocol Buffers.
-FROM base-builder as protobuf
-COPY ./protobuf /protobuf/
-WORKDIR /protobuf/
-RUN ./autogen.sh && \
-    ./configure && \
-    make && \
-    make DESTDIR=/output install-strip
-WORKDIR /protobuf/python/
-# Protobuf is using a deprecated technique to install Python package with
-# easy install. This is causing issues since 2021-04-21. (https://discuss.python.org/t/pypi-org-recently-changed/8433)
-# We have to install pip and install six ourselves so we do not trigger the
-# broken protobuf install process.
-RUN pip3 install --user --ignore-installed wheel six && \
-    python3 setup.py install --user --cpp_implementation
-# We'll finish up the process of building protobuf below, but first, a bit of
-# explanation.
-#
-# Since we can't use `pip` with protobuf's `setup.py`, the package gets
-# installed via setuptools in an "egg" - a directory which acts as a python
-# module, but isn't a package and thus isn't automatically part of the package
-# namespace. Eggs need their contents to be added to python's `sys.path` to
-# become visible. Hooks that run early during python startup normally read
-# `setuptools.pth` and other `.pth` files and add all of the directories
-# referenced in those files to the path; egg contents are placed in those files
-# to be made available to the rest of the python installation.
-#
-# In multistage builds this doesn't work so well, because those `.pth` files can
-# easily be overwritten by other versions from a different image, and the eggs
-# we're installing here will no longer appear in `sys.path`. To work around
-# that, we just copy the contents of the existing `.pth` files into a new one
-# with a name we're sure won't be overwritten. Python will read this new `.pth`
-# file at startup and include the eggs in the path.
-#
-# If you're wondering why the `grep -v` is necessary, meditate upon the fact
-# that these files aren't merely metadata but also executable code, and
-# setuptools, by design, uses this feature to inject code into every python
-# program that runs on your system.
-RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
-    cd /output/usr/local/lib/$PYTHON3_VERSION/site-packages&& \
-    cat *.pth | grep -v "import sys" | sort -u > docker_protobuf.pth
+FROM base-builder AS protobuf
+WORKDIR /
+SHELL ["/bin/bash", "-c"]
+RUN mkdir -p /build && \
+    cd /build && \
+    git clone https://github.com/google/protobuf && \
+    cd protobuf && \
+    git checkout v5.26.1 && \
+    git submodule update --init --recursive
+RUN cd /build/protobuf && \
+    cmake -Dprotobuf_BUILD_SHARED_LIBS=ON . && \
+    make -j$(nproc)
+RUN cd /build/protobuf && \
+    make DESTDIR=/output install && \
+    source /output/usr/local/bin/activate && \
+    python3 -m pip install protobuf==5.26.1
 
-# Build gRPC.
-# The gRPC build system should detect that a version of protobuf is already
-# installed and should not try to install the third-party one included as a
-# submodule in the grpc repository.
-FROM base-builder as grpc
+# Build gRPC
+FROM base-builder AS grpc
 COPY --from=protobuf /output/usr/local /usr/local/
 RUN ldconfig
-COPY ./grpc /grpc/
-# See https://github.com/grpc/grpc/blob/master/BUILDING.md
-RUN mkdir -p /grpc/cmake/build
-WORKDIR /grpc/cmake/build/
-RUN cmake ../.. \
+WORKDIR /
+SHELL ["/bin/bash", "-c"]
+RUN cd / && \
+    git clone https://github.com/grpc/grpc && \
+    cd grpc && \
+    git checkout v1.64.3 && \
+    git submodule update --init --recursive
+RUN cd /grpc && \
+    mkdir -p cmake/build && \
+    cd cmake/build && \
+    cmake ../.. \
       -DgRPC_INSTALL=ON \
       -DCMAKE_BUILD_TYPE=Release \
       -DgRPC_PROTOBUF_PROVIDER=package \
-      -DgRPC_SSL_PROVIDER=package && \
-    make DESTDIR=/output install
-WORKDIR /grpc/
-# `pip install --user` will place things in `site-packages`, but Ubuntu expects
-# `dist-packages` by default, so we need to set configure `site-packages` as an
-# additional "site-specific directory".
-# Without this, our earlier installation of Protobuf will be ignored.
-RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
-  echo "import site; site.addsitedir('/usr/local/lib/$PYTHON3_VERSION/site-packages')" \
-    > /usr/local/lib/$PYTHON3_VERSION/dist-packages/use_site_packages.pth
-# We don't use `--ignore-installed` here because otherwise we won't use the
-# installed version of the protobuf python package that we copied from the
-# protobuf build image.
-RUN pip3 install --user -rrequirements.txt
-RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip3 install --user --ignore-installed .
+      -DgRPC_SSL_PROVIDER=module && \
+    make DESTDIR=/output install && \
+    ldconfig && \
+    source /output/usr/local/bin/activate && \
+    python3 -m pip install grpcio==1.64.3
 
 # Build libyang
-FROM base-builder as libyang
-COPY ./libyang /libyang/
-RUN mkdir -p /libyang/build/
+FROM base-builder AS libyang
+WORKDIR /
+RUN cd / && \
+    git clone https://github.com/CESNET/libyang && \
+    cd libyang && \
+    git checkout 8e690c2a98275494ee06e37bb1cc26d19f3c4c5e && \
+    mkdir -p /libyang/build/
 WORKDIR /libyang/build/
 RUN cmake .. && \
     make DESTDIR=/output install
 
 # Build sysrepo
-FROM base-builder as sysrepo
+FROM base-builder AS sysrepo
 COPY --from=libyang /output/usr/local /usr/local/
 RUN ldconfig
-COPY ./sysrepo /sysrepo/
-RUN mkdir -p /sysrepo/build/
+WORKDIR /
+RUN cd / && \
+    git clone https://github.com/sysrepo/sysrepo && \
+    cd sysrepo && \
+    git checkout v0.7.5 && \
+    mkdir -p /sysrepo/build/
 WORKDIR /sysrepo/build/
 # CALL_TARGET_BINS_DIRECTLY=Off is needed here because of the use of DESTDIR
 # Without it sysrepoctl is executed at install time and assumes YANG files are
@@ -222,15 +218,15 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=Off -DCALL_TARGET_BINS_DIR
     make DESTDIR=/output install
 
 # Construct the final image.
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 LABEL maintainer="P4 Developers <p4-dev@lists.p4.org>"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
     PTF_RUNTIME_DEPS="libpcap-dev python3-minimal tcpdump" && \
     NNPY_RUNTIME_DEPS="python3-minimal" && \
-    THRIFT_RUNTIME_DEPS="libssl1.1 python3-minimal" && \
-    GRPC_RUNTIME_DEPS="libssl-dev python3-minimal python3-setuptools" && \
+    THRIFT_RUNTIME_DEPS="python3-minimal" && \
+    GRPC_RUNTIME_DEPS="libssl-dev python3-minimal python3-setuptools libre2-dev" && \
     SYSREPO_RUNTIME_DEPS="libpcre3 libavl1 libev4 libprotobuf-c1" && \
     apt-get update && \
     apt-get install -y --no-install-recommends $CCACHE_RUNTIME_DEPS \
@@ -238,8 +234,7 @@ RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
                                                $NNPY_RUNTIME_DEPS \
                                                $THRIFT_RUNTIME_DEPS \
                                                $GRPC_RUNTIME_DEPS \
-                                               $SYSREPO_RUNTIME_DEPS \
-                                               python-is-python3 && \
+                                               $SYSREPO_RUNTIME_DEPS && \
     rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 # Configure ccache so that descendant containers won't need to.
 COPY ./docker/ccache.conf /usr/local/etc/ccache.conf
