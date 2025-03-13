@@ -55,9 +55,11 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
         libmemcached-dev \
         libpcap-dev \
         libpcre3-dev \
+        libprotobuf-c-dev \
         libtool \
         make \
         pkg-config \
+        protobuf-c-compiler \
         python3 \
         python3-dev \
         python3-venv && \
