@@ -43,7 +43,6 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
         build-essential \
         ca-certificates \
         cmake \
-        cython3 \
         flex \
         g++ \
         git \
@@ -56,17 +55,12 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
         libmemcached-dev \
         libpcap-dev \
         libpcre3-dev \
-        libprotobuf-c-dev \
-        libssl-dev \
         libtool \
         make \
         pkg-config \
-        protobuf-c-compiler \
         python3 \
         python3-dev \
-        python3-pip \
-        python3-venv \
-        python3-setuptools && \
+        python3-venv && \
     ldconfig && \
     mkdir -p /output/usr/local && \
     python3 -m venv /output/usr/local
@@ -158,7 +152,7 @@ RUN mkdir -p /build && \
     cd /build && \
     git clone https://github.com/google/protobuf && \
     cd protobuf && \
-    git checkout v4.25.1 && \
+    git checkout v5.26.1 && \
     git submodule update --init --recursive
 RUN cd /build/protobuf && \
     cmake -Dprotobuf_BUILD_SHARED_LIBS=ON . && \
@@ -166,7 +160,7 @@ RUN cd /build/protobuf && \
 RUN cd /build/protobuf && \
     make DESTDIR=/output install && \
     source /output/usr/local/bin/activate && \
-    python3 -m pip install protobuf==4.25.1
+    python3 -m pip install protobuf==5.26.1
 
 # Build gRPC
 FROM base-builder AS grpc
@@ -177,7 +171,7 @@ SHELL ["/bin/bash", "-c"]
 RUN cd / && \
     git clone https://github.com/grpc/grpc && \
     cd grpc && \
-    git checkout v1.62.3 && \
+    git checkout v1.64.3 && \
     git submodule update --init --recursive
 RUN cd /grpc && \
     mkdir -p cmake/build && \
@@ -186,11 +180,11 @@ RUN cd /grpc && \
       -DgRPC_INSTALL=ON \
       -DCMAKE_BUILD_TYPE=Release \
       -DgRPC_PROTOBUF_PROVIDER=package \
-      -DgRPC_SSL_PROVIDER=package && \
+      -DgRPC_SSL_PROVIDER=module && \
     make DESTDIR=/output install && \
     ldconfig && \
     source /output/usr/local/bin/activate && \
-    python3 -m pip install grpcio==1.62.3
+    python3 -m pip install grpcio==1.64.3
 
 # Build libyang
 FROM base-builder AS libyang
