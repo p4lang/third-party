@@ -150,10 +150,27 @@ RUN cd / && \
     make DESTDIR=/output install-strip && \
     python3 -m pip install thrift==0.16.0
 
+# Build Protocol Buffers.
+FROM base-builder AS protobuf
+WORKDIR /
+SHELL ["/bin/bash", "-c"]
+RUN mkdir -p /build && \
+    cd /build && \
+    git clone https://github.com/google/protobuf && \
+    cd protobuf && \
+    git checkout v4.25.1 && \
+    git submodule update --init --recursive
+RUN cd /build/protobuf && \
+    cmake -Dprotobuf_BUILD_SHARED_LIBS=ON . && \
+    make -j$(nproc)
+RUN cd /build/protobuf && \
+    make DESTDIR=/output install && \
+    source /output/usr/local/bin/activate && \
+    python3 -m pip install protobuf==4.25.1
+
 # Build gRPC
-# This also builds Protobuf.
 FROM base-builder AS grpc
-#COPY --from=protobuf /output/usr/local /usr/local/
+COPY --from=protobuf /output/usr/local /usr/local/
 RUN ldconfig
 WORKDIR /
 SHELL ["/bin/bash", "-c"]
@@ -162,17 +179,17 @@ RUN cd / && \
     cd grpc && \
     git checkout v1.62.3 && \
     git submodule update --init --recursive
-RUN source /output/usr/local/bin/activate && \
-    cd /grpc && \
+RUN cd /grpc && \
     mkdir -p cmake/build && \
     cd cmake/build && \
     cmake ../.. \
       -DgRPC_INSTALL=ON \
       -DCMAKE_BUILD_TYPE=Release \
-      -DgRPC_PROTOBUF_PROVIDER=module \
+      -DgRPC_PROTOBUF_PROVIDER=package \
       -DgRPC_SSL_PROVIDER=package && \
     make DESTDIR=/output install && \
-    python3 -m pip install protobuf==4.25.1 && \
+    ldconfig && \
+    source /output/usr/local/bin/activate && \
     python3 -m pip install grpcio==1.62.3
 
 # Build libyang
@@ -221,8 +238,7 @@ RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
                                                $NNPY_RUNTIME_DEPS \
                                                $THRIFT_RUNTIME_DEPS \
                                                $GRPC_RUNTIME_DEPS \
-                                               $SYSREPO_RUNTIME_DEPS \
-                                               python-is-python3 && \
+                                               $SYSREPO_RUNTIME_DEPS && \
     rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 # Configure ccache so that descendant containers won't need to.
 COPY ./docker/ccache.conf /usr/local/etc/ccache.conf
@@ -232,6 +248,7 @@ COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
 COPY --from=nnpy /output/usr/local /usr/local/
 COPY --from=thrift /output/usr/local /usr/local/
+COPY --from=protobuf /output/usr/local /usr/local/
 COPY --from=grpc /output/usr/local /usr/local/
 COPY --from=libyang /output/usr/local /usr/local/
 COPY --from=sysrepo /output/usr/local /usr/local/
