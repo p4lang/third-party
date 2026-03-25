@@ -270,60 +270,57 @@
 # RUN ldconfig
 
 
+
 # ===============================
 # Base Builder (Ubuntu 24.04)
 # ===============================
 FROM ubuntu:24.04 AS base-builder
 
 ARG MAKEFLAGS=-j2
-ENV DEBIAN_FRONTEND=noninteractive \
-    CFLAGS="-Os" \
-    CXXFLAGS="-Os" \
-    LDFLAGS="-Wl,-s" \
-    PYTHONUSERBASE=/output/usr/local
+ENV DEBIAN_FRONTEND=noninteractive 
+# Fixed: Added ENV prefix to these variables
+ENV CFLAGS="-Os" 
+ENV CXXFLAGS="-Os" 
+ENV LDFLAGS="-Wl,-s" 
+ENV PYTHONUSERBASE=/output/usr/local
 
 RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
-        autoconf \
-        automake \
-        bison \
-        build-essential \
-        gcc-11 \
-        g++-11 \
-        ca-certificates \
-        cmake \
-        cython3 \
-        flex \
-        g++ \
-        libavl-dev \
-        libboost-dev \
-        libboost-test-dev \
-        libev-dev \
-        libevent-dev \
-        libffi-dev \
-        libmemcached-dev \
-        libpcap-dev \
-        libpcre3-dev \
-        libprotobuf-c-dev \
-        protobuf-c-compiler \
-        libprotobuf-dev \
-        protobuf-compiler \
-        libssl-dev \
-        libtool \
-        make \
-        pkg-config \
-        python3 \
-        python3-dev \
-        python3-pip \
-        python3-setuptools && \
+    autoconf \
+    automake \
+    bison \
+    build-essential \
+    gcc-11 \
+    g++-11 \
+    ca-certificates \
+    cmake \
+    flex \
+    g++ \
+    libavl-dev \
+    libboost-dev \
+    libboost-test-dev \
+    libev-dev \
+    libevent-dev \
+    libffi-dev \
+    libmemcached-dev \
+    libpcap-dev \
+    libpcre3-dev \
+    libprotobuf-c-dev \
+    protobuf-c-compiler \
+    libprotobuf-dev \
+    protobuf-compiler \
+    libssl-dev \
+    libtool \
+    make \
+    pkg-config \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-setuptools && \
     ldconfig && \
     mkdir -p /output/usr/local
 
-
 ENV CC=gcc-11
 ENV CXX=g++-11
-
-
-RUN python3 -m pip install "Cython<3" --break-system-packages
 
 # ===============================
 # ccache
@@ -347,6 +344,7 @@ WORKDIR /ptf/
 RUN python3 -m pip install pcapy-ng --break-system-packages && \
     python3 -m pip install -r requirements.txt --break-system-packages && \
     python3 -m pip install . --break-system-packages
+
 # ===============================
 # nanomsg
 # ===============================
@@ -375,15 +373,15 @@ COPY ./thrift /thrift/
 WORKDIR /thrift/
 RUN ./bootstrap.sh && \
     ./configure \
-        --with-cpp=yes \
-        --with-python=yes \
-        --with-c_glib=no \
-        --with-java=no \
-        --with-ruby=no \
-        --with-erlang=no \
-        --with-go=no \
-        --with-nodejs=no \
-        --enable-tests=no && \
+    --with-cpp=yes \
+    --with-python=yes \
+    --with-c_glib=no \
+    --with-java=no \
+    --with-ruby=no \
+    --with-erlang=no \
+    --with-go=no \
+    --with-nodejs=no \
+    --enable-tests=no && \
     make && \
     make DESTDIR=/output install-strip
 
@@ -400,20 +398,17 @@ RUN mkdir -p /grpc/cmake/build
 WORKDIR /grpc/cmake/build
 
 RUN cmake ../.. \
-      -DgRPC_INSTALL=ON \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DgRPC_PROTOBUF_PROVIDER=module \
-      -DgRPC_SSL_PROVIDER=package \
-      -DCMAKE_CXX_STANDARD=17 \
-      -DCMAKE_CXX_STANDARD_REQUIRED=ON && \
+    -DgRPC_INSTALL=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DgRPC_PROTOBUF_PROVIDER=module \
+    -DgRPC_SSL_PROVIDER=package \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_CXX_STANDARD_REQUIRED=ON && \
     make -j$(nproc) DESTDIR=/output install
 
 WORKDIR /grpc/
 
-RUN python3 -m pip install -r requirements.txt --break-system-packages
-
-RUN GRPC_PYTHON_BUILD_WITH_CYTHON=1 \
-    python3 -m pip install --no-build-isolation . --break-system-packages
+RUN python3 -m pip install grpcio --break-system-packages
 
 # ===============================
 # libyang
@@ -434,8 +429,8 @@ COPY ./sysrepo /sysrepo/
 RUN mkdir -p /sysrepo/build
 WORKDIR /sysrepo/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release \
-          -DBUILD_EXAMPLES=Off \
-          -DCALL_TARGET_BINS_DIRECTLY=Off .. && \
+    -DBUILD_EXAMPLES=Off \
+    -DCALL_TARGET_BINS_DIRECTLY=Off .. && \
     make DESTDIR=/output install
 
 # ===============================
@@ -446,16 +441,16 @@ FROM ubuntu:24.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libmemcached-dev \
-        libpcap-dev \
-        python3-minimal \
-        tcpdump \
-        libssl-dev \
-        libpcre3 \
-        libavl1 \
-        libev4 \
-        libprotobuf-c1 \
-        python-is-python3 && \
+    libmemcached-dev \
+    libpcap-dev \
+    python3-minimal \
+    tcpdump \
+    libssl-dev \
+    libpcre3 \
+    libavl1 \
+    libev4 \
+    libprotobuf-c1 \
+    python-is-python3 && \
     rm -rf /var/lib/apt/lists/*
 
 COPY ./docker/ccache.conf /usr/local/etc/ccache.conf
