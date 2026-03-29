@@ -57,17 +57,13 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
         libpcap-dev \
         libpcre3-dev \
         libprotobuf-c-dev \
-        libgrpc++-dev \
         libssl-dev \
         libtool \
         make \
         pkg-config \
-        protobuf-compiler-grpc \
         protobuf-c-compiler \
         python3 \
         python3-dev \
-        python3-grpcio \
-        python3-grpc-tools \
         python3-pip \
         python3-setuptools && \
     ldconfig && \
@@ -173,6 +169,34 @@ RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]
     cd /output/usr/local/lib/$PYTHON3_VERSION/site-packages&& \
     cat *.pth | grep -v "import sys" | sort -u > docker_protobuf.pth
 
+# Build gRPC.
+# The gRPC build system should detect that a version of protobuf is already
+# installed and should not try to install the third-party one included as a
+# submodule in the grpc repository.
+FROM base-builder as grpc
+COPY --from=protobuf /output/usr/local /usr/local/
+RUN ldconfig
+COPY ./grpc /grpc/
+# See https://github.com/grpc/grpc/blob/master/BUILDING.md
+RUN mkdir -p /grpc/cmake/build
+WORKDIR /grpc/cmake/build/
+RUN cmake ../.. \
+      -DgRPC_INSTALL=ON \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DgRPC_PROTOBUF_PROVIDER=package \
+      -DgRPC_SSL_PROVIDER=package && \
+    make DESTDIR=/output install
+WORKDIR /grpc/
+# `pip install --user` will place things in `site-packages`, but Ubuntu expects
+# `dist-packages` by default, so we need to set configure `site-packages` as an
+# additional "site-specific directory".
+# Without this, our earlier installation of Protobuf will be ignored.
+RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
+  echo "import site; site.addsitedir('/usr/local/lib/$PYTHON3_VERSION/site-packages')" \
+    > /usr/local/lib/$PYTHON3_VERSION/dist-packages/use_site_packages.pth
+RUN pip3 install --user -rrequirements.txt
+RUN pip3 install --user .
+
 # Build libyang
 FROM base-builder as libyang
 COPY ./libyang /libyang/
@@ -203,7 +227,7 @@ RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
     PTF_RUNTIME_DEPS="libpcap-dev python3-minimal tcpdump" && \
     NNPY_RUNTIME_DEPS="python3-minimal" && \
     THRIFT_RUNTIME_DEPS="libssl1.1 python3-minimal" && \
-    GRPC_RUNTIME_DEPS="libssl-dev libgrpc++-dev protobuf-compiler-grpc python3-minimal python3-grpcio python3-grpc-tools python3-setuptools" && \
+    GRPC_RUNTIME_DEPS="libssl-dev python3-minimal python3-setuptools" && \
     SYSREPO_RUNTIME_DEPS="libpcre3 libavl1 libev4 libprotobuf-c1" && \
     apt-get update && \
     apt-get install -y --no-install-recommends $CCACHE_RUNTIME_DEPS \
@@ -223,6 +247,7 @@ COPY --from=nanomsg /output/usr/local /usr/local/
 COPY --from=nnpy /output/usr/local /usr/local/
 COPY --from=thrift /output/usr/local /usr/local/
 COPY --from=protobuf /output/usr/local /usr/local/
+COPY --from=grpc /output/usr/local /usr/local/
 COPY --from=libyang /output/usr/local /usr/local/
 COPY --from=sysrepo /output/usr/local /usr/local/
 COPY --from=sysrepo /output/etc /etc/
