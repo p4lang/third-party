@@ -194,11 +194,8 @@ WORKDIR /grpc/
 RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
   echo "import site; site.addsitedir('/usr/local/lib/$PYTHON3_VERSION/site-packages')" \
     > /usr/local/lib/$PYTHON3_VERSION/dist-packages/use_site_packages.pth
-# We don't use `--ignore-installed` here because otherwise we won't use the
-# installed version of the protobuf python package that we copied from the
-# protobuf build image.
 RUN pip3 install --user -rrequirements.txt
-RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip3 install --user --ignore-installed .
+RUN pip3 install --user .
 
 # Build libyang
 FROM base-builder as libyang
