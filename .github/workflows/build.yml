@@ -71,3 +71,11 @@ jobs:
         context: .
         push: true
         tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}
+    - name: Build and push Dockerfile.24 image if needed
+      if: ${{ github.repository == 'p4lang/third-party' && github.event_name == 'push' }}
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: Dockerfile.24
+        push: true
+        tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}-24
