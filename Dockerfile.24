@@ -301,7 +301,6 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
     libev-dev \
     libevent-dev \
     libffi-dev \
-    libmemcached-dev \
     libpcap-dev \
     libpcre3-dev \
     libprotobuf-c-dev \
@@ -321,19 +320,6 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
 
 ENV CC=gcc-11
 ENV CXX=g++-11
-
-# ===============================
-# ccache
-# ===============================
-FROM base-builder AS ccache
-ENV RUN_FROM_BUILD_FARM=yes
-COPY ./ccache /ccache/
-WORKDIR /ccache/
-RUN ./autogen.sh && \
-    ./configure --enable-memcached && \
-    make && \
-    touch ccache.1 && \
-    make DESTDIR=/output install
 
 # ===============================
 # PTF
@@ -441,7 +427,7 @@ FROM ubuntu:24.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libmemcached-dev \
+    ccache \
     libpcap-dev \
     python3-minimal \
     tcpdump \
@@ -453,9 +439,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python-is-python3 && \
     rm -rf /var/lib/apt/lists/*
 
-COPY ./docker/ccache.conf /usr/local/etc/ccache.conf
-
-COPY --from=ccache /output/usr/local /usr/local/
 COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
 COPY --from=nnpy /output/usr/local /usr/local/

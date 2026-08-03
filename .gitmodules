@@ -16,9 +16,6 @@
 [submodule "ptf"]
 	path = ptf
 	url = https://github.com/p4lang/ptf.git
-[submodule "ccache"]
-	path = ccache
-	url = https://github.com/WebHare/ccache.git
 [submodule "libyang"]
 	path = libyang
 	url = https://github.com/CESNET/libyang.git

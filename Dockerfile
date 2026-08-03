@@ -53,7 +53,6 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
         libev-dev \
         libevent-dev \
         libffi-dev \
-        libmemcached-dev \
         libpcap-dev \
         libpcre3-dev \
         libprotobuf-c-dev \
@@ -70,19 +69,6 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
     mkdir -p /output/usr/local
 
 RUN pip3 install "Cython<3"
-
-# Build ccache.
-FROM base-builder as ccache
-ENV RUN_FROM_BUILD_FARM=yes
-COPY ./ccache /ccache/
-WORKDIR /ccache/
-# Tell the ccache build system not to bother with things like documentation.
-RUN ./autogen.sh && \
-    ./configure --enable-memcached && \
-    make && \
-# `make install` assumes that we *did* build the docs; make it happy.
-    touch ccache.1  && \
-    make DESTDIR=/output install
 
 # Build PTF.
 FROM base-builder as ptf
@@ -231,7 +217,7 @@ FROM ubuntu:20.04
 LABEL maintainer="P4 Developers <p4-dev@lists.p4.org>"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
-RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
+RUN CCACHE_RUNTIME_DEPS="ccache" && \
     PTF_RUNTIME_DEPS="libpcap-dev python3-minimal tcpdump" && \
     NNPY_RUNTIME_DEPS="python3-minimal" && \
     THRIFT_RUNTIME_DEPS="libssl1.1 python3-minimal" && \
@@ -246,10 +232,7 @@ RUN CCACHE_RUNTIME_DEPS="libmemcached-dev" && \
                                                $SYSREPO_RUNTIME_DEPS \
                                                python-is-python3 && \
     rm -rf /var/cache/apt/* /var/lib/apt/lists/*
-# Configure ccache so that descendant containers won't need to.
-COPY ./docker/ccache.conf /usr/local/etc/ccache.conf
 # Copy files from the build containers.
-COPY --from=ccache /output/usr/local /usr/local/
 COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
 COPY --from=nnpy /output/usr/local /usr/local/
