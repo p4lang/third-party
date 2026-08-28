@@ -76,7 +76,14 @@ COPY ./ptf /ptf/
 WORKDIR /ptf/
 RUN pip3 install --user --ignore-installed wheel pypcap && \
     pip3 install --user --ignore-installed -rrequirements.txt && \
-    pip3 install --user --ignore-installed .
+    pip3 install --user --ignore-installed . && \
+    echo "--> id, whoami" && \
+    id && \
+    whoami && \
+    echo "--> cat /etc/os-release" && \
+    cat /etc/os-release && \
+    echo "--> contents of /output for ptf" && \
+    find /output
 
 # Build nanomsg.
 FROM base-builder as nanomsg
@@ -84,7 +91,9 @@ COPY ./nanomsg /nanomsg/
 RUN mkdir -p /nanomsg/build/
 WORKDIR /nanomsg/build/
 RUN cmake .. && \
-    make DESTDIR=/output install
+    make DESTDIR=/output install && \
+    echo "--> contents of /output for nanomsg" && \
+    find /output
 
 # Build nnpy.
 FROM base-builder as nnpy
@@ -93,7 +102,9 @@ COPY ./nnpy /nnpy/
 WORKDIR /nnpy/
 RUN ldconfig && \
     pip3 install --user --ignore-installed wheel cffi && \
-    pip3 install --user --ignore-installed .
+    pip3 install --user --ignore-installed . && \
+    echo "--> contents of /output for nnpy" && \
+    find /output
 
 # Build Thrift.
 FROM base-builder as thrift
@@ -113,7 +124,9 @@ RUN ./bootstrap.sh && \
     make  && \
     make DESTDIR=/output install-strip
 WORKDIR /thrift/lib/py/
-RUN pip3 install --user --ignore-installed .
+RUN pip3 install --user --ignore-installed . && \
+    echo "--> contents of /output for thrift" && \
+    find /output
 
 # Build Protocol Buffers.
 FROM base-builder as protobuf
@@ -155,7 +168,9 @@ RUN pip3 install --user --ignore-installed wheel six && \
 # program that runs on your system.
 RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]; print("python{0}.{1}".format(*version))'` && \
     cd /output/usr/local/lib/$PYTHON3_VERSION/site-packages&& \
-    cat *.pth | grep -v "import sys" | sort -u > docker_protobuf.pth
+    cat *.pth | grep -v "import sys" | sort -u > docker_protobuf.pth && \
+    echo "--> contents of /output for protobuf" && \
+    find /output
 
 # Build gRPC.
 # The gRPC build system should detect that a version of protobuf is already
@@ -189,7 +204,9 @@ RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]
 
 RUN pip3 install --user -rrequirements.txt
 RUN pip3 install --user "Cython==0.29.36"
-RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip3 install --user --ignore-installed .
+RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip3 install --user --ignore-installed . && \
+    echo "--> contents of /output for grpc" && \
+    find /output
 
 # Build libyang
 FROM base-builder as libyang
@@ -197,7 +214,9 @@ COPY ./libyang /libyang/
 RUN mkdir -p /libyang/build/
 WORKDIR /libyang/build/
 RUN cmake .. && \
-    make DESTDIR=/output install
+    make DESTDIR=/output install && \
+    echo "--> contents of /output for libyang" && \
+    find /output
 
 # Build sysrepo
 FROM base-builder as sysrepo
@@ -210,7 +229,9 @@ WORKDIR /sysrepo/build/
 # Without it sysrepoctl is executed at install time and assumes YANG files are
 # under /etc/sysrepo/yang
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=Off -DCALL_TARGET_BINS_DIRECTLY=Off .. && \
-    make DESTDIR=/output install
+    make DESTDIR=/output install && \
+    echo "--> contents of /output for sysrepo" && \
+    find /output
 
 # Construct the final image.
 FROM ubuntu:20.04
@@ -233,6 +254,9 @@ RUN CCACHE_RUNTIME_DEPS="ccache" && \
                                                python-is-python3 && \
     rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 # Copy files from the build containers.
+RUN echo "--> usr local files before copying from other docker images" && \
+    find /usr/local -ls && \
+    echo "--> end"
 COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
 COPY --from=nnpy /output/usr/local /usr/local/
@@ -241,6 +265,9 @@ COPY --from=protobuf /output/usr/local /usr/local/
 COPY --from=grpc /output/usr/local /usr/local/
 COPY --from=libyang /output/usr/local /usr/local/
 COPY --from=sysrepo /output/usr/local /usr/local/
+RUN echo "--> usr local files after copying from other docker images" && \
+    find /usr/local -ls && \
+    echo "--> end"
 COPY --from=sysrepo /output/etc /etc/
 # `pip install --user` will place things in `site-packages`, but Ubuntu expects
 # `dist-packages` by default, so we need to set configure `site-packages` as an
