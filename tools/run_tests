@@ -13,6 +13,21 @@ function test_python_import() {
   fi
 }
 
+SAVE=$PWD
+for j in $(find / -name site-packages)
+do
+    echo "----------------------------------------------------------------------"
+    echo $j
+    find $j
+done
+for j in $(find / -name dist-packages)
+do
+    echo "----------------------------------------------------------------------"
+    echo $j
+    find $j
+done
+cd $SAVE
+
 test_python_import "scapy"
 test_python_import "ptf"
 test_python_import "nnpy"
