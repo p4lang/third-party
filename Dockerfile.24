@@ -330,7 +330,8 @@ WORKDIR /ptf/
 RUN python3 -m pip install pcapy-ng --break-system-packages && \
     python3 -m pip install -r requirements.txt --break-system-packages && \
     python3 -m pip install . --break-system-packages && \
-    find /output > /output/usr/local/output-files-ptf.txt
+    echo "--> contents of /output for ptf" && \
+    find /output
 
 # ===============================
 # nanomsg
@@ -340,7 +341,8 @@ COPY ./nanomsg /nanomsg/
 RUN mkdir -p /nanomsg/build
 WORKDIR /nanomsg/build
 RUN cmake .. && make DESTDIR=/output install && \
-    find /output > /output/usr/local/output-files-nanomsg.txt
+    echo "--> contents of /output for nanomsg" && \
+    find /output
 
 # ===============================
 # nnpy
@@ -352,7 +354,8 @@ WORKDIR /nnpy/
 RUN ldconfig && \
     python3 -m pip install wheel cffi --break-system-packages && \
     python3 -m pip install --no-build-isolation . --break-system-packages && \
-    find /output > /output/usr/local/output-files-nnpy.txt
+    echo "--> contents of /output for nnpy" && \
+    find /output
 
 # ===============================
 # Thrift
@@ -376,7 +379,8 @@ RUN ./bootstrap.sh && \
 
 WORKDIR /thrift/lib/py/
 RUN python3 -m pip install . --break-system-packages && \
-    find /output > /output/usr/local/output-files-thrift.txt
+    echo "--> contents of /output for thrift" && \
+    find /output
 
 # ===============================
 # gRPC
@@ -399,7 +403,8 @@ RUN cmake ../.. \
 WORKDIR /grpc/
 
 RUN python3 -m pip install grpcio --break-system-packages && \
-    find /output > /output/usr/local/output-files-grpc.txt
+    echo "--> contents of /output for grpc" && \
+    find /output
 
 # ===============================
 # libyang
@@ -409,7 +414,8 @@ COPY ./libyang /libyang/
 RUN mkdir -p /libyang/build
 WORKDIR /libyang/build
 RUN cmake .. && make DESTDIR=/output install && \
-    find /output > /output/usr/local/output-files-libyang.txt
+    echo "--> contents of /output for libyang" && \
+    find /output
 
 # ===============================
 # sysrepo
@@ -424,7 +430,8 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_EXAMPLES=Off \
     -DCALL_TARGET_BINS_DIRECTLY=Off .. && \
     make DESTDIR=/output install && \
-    find /output > /output/usr/local/output-files-sysrepo.txt
+    echo "--> contents of /output for sysrepo" && \
+    find /output
 
 # ===============================
 # Final Runtime Image (Ubuntu 24.04)
