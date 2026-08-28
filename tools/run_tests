@@ -18,13 +18,13 @@ for j in $(find / -name site-packages)
 do
     echo "----------------------------------------------------------------------"
     echo $j
-    find $j
+    find $j | egrep '(scapy|ptf|nnpy)'
 done
 for j in $(find / -name dist-packages)
 do
     echo "----------------------------------------------------------------------"
     echo $j
-    find $j
+    find $j | egrep '(scapy|ptf|nnpy)'
 done
 cd $SAVE
 
