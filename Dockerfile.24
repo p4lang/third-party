@@ -330,6 +330,11 @@ WORKDIR /ptf/
 RUN python3 -m pip install pcapy-ng --break-system-packages && \
     python3 -m pip install -r requirements.txt --break-system-packages && \
     python3 -m pip install . --break-system-packages && \
+    echo "--> id, whoami" && \
+    id && \
+    whoami && \
+    echo "--> cat /etc/os-release" && \
+    cat /etc/os-release && \
     echo "--> contents of /output for ptf" && \
     find /output
 
@@ -453,6 +458,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python-is-python3 && \
     rm -rf /var/lib/apt/lists/*
 
+RUN echo "--> usr local files before copying from other docker images" && \
+    find /usr/local -ls && \
+    echo "--> end"
 COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
 COPY --from=nnpy /output/usr/local /usr/local/
@@ -461,5 +469,8 @@ COPY --from=grpc /output/usr/local /usr/local/
 COPY --from=libyang /output/usr/local /usr/local/
 COPY --from=sysrepo /output/usr/local /usr/local/
 COPY --from=sysrepo /output/etc /etc/
+RUN echo "--> usr local files after copying from other docker images" && \
+    find /usr/local -ls && \
+    echo "--> end"
 
 RUN ldconfig
