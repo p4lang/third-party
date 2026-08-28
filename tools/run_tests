@@ -14,17 +14,17 @@ function test_python_import() {
 }
 
 SAVE=$PWD
-for j in $(find / -name site-packages 2>/dev/null)
+for j in $(docker run $THIRD_PARTY_IMAGE find / -name site-packages 2>/dev/null)
 do
     echo "----------------------------------------------------------------------"
     echo $j
-    find $j | egrep '(scapy|ptf|nnpy)'
+    docker run $THIRD_PARTY_IMAGE find $j | egrep '(scapy|ptf|nnpy)'
 done
-for j in $(find / -name dist-packages 2>/dev/null)
+for j in $(docker run $THIRD_PARTY_IMAGE find / -name dist-packages 2>/dev/null)
 do
     echo "----------------------------------------------------------------------"
     echo $j
-    find $j | egrep '(scapy|ptf|nnpy)'
+    docker run $THIRD_PARTY_IMAGE find $j | egrep '(scapy|ptf|nnpy)'
 done
 cd $SAVE
 
