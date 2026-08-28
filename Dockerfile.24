@@ -107,9 +107,6 @@ RUN ./bootstrap.sh && \
     make && \
     make DESTDIR=/output install-strip
 
-WORKDIR /thrift/lib/py/
-RUN python3 -m pip install . --break-system-packages
-
 # ===============================
 # gRPC
 # ===============================
@@ -127,10 +124,6 @@ RUN cmake ../.. \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_CXX_STANDARD_REQUIRED=ON && \
     make -j$(nproc) DESTDIR=/output install
-
-WORKDIR /grpc/
-
-RUN python3 -m pip install grpcio --break-system-packages
 
 # ===============================
 # libyang
