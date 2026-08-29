@@ -83,6 +83,7 @@ ENV CXX=g++-11
 # ===============================
 FROM base-builder AS nanomsg
 COPY ./nanomsg /nanomsg/
+RUN echo "ls -l /nanomsg" && ls -l /nanomsg
 RUN mkdir -p /nanomsg/build
 WORKDIR /nanomsg/build
 RUN cmake .. && make DESTDIR=/output install
@@ -154,6 +155,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
 FROM ubuntu:24.04
 
 COPY ./tools /tools/
+RUN echo "ls -l /tools" && ls -l /tools
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -178,6 +180,5 @@ COPY --from=sysrepo /output/usr/local /usr/local/
 COPY --from=sysrepo /output/etc /etc/
 
 RUN ldconfig
-RUN echo "ls -l /tools" && ls -l /tools
+RUN date > /usr/local/jafinger-timestamp && cat /usr/local/jafinger-timestamp
 RUN /tools/show-python-packages.sh
-RUN date > /usr/local/jafinger-timestamp
