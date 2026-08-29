@@ -154,6 +154,9 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
 # ===============================
 FROM ubuntu:24.04
 
+COPY ./tools /tools/
+RUN echo "ls -l /tools" && ls -l /tools && /tools/show-python-packages.sh
+
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
