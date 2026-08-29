@@ -64,6 +64,10 @@ jobs:
     - name: Test Docker image
       run: |
         ./tools/run_tests
+    - name: Debug print variables
+      run: |
+        echo "github.repository: ${{ github.repository }}"
+        echo "github.event_name: ${{ github.event_name }}"
     - name: Build and push to Docker if needed
       if: ${{ github.repository == 'p4lang/third-party' && github.event_name == 'push' }}
       uses: docker/build-push-action@v2
