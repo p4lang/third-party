@@ -188,9 +188,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libev4 \
     libprotobuf-c1 \
     python-is-python3 && \
-    rm -rf /var/lib/apt/lists/* && \
-    curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    source $HOME/.local/bin/env && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+RUN source $HOME/.local/bin/env && \
     uv venv $HOME/p4-python-venv
 
 RUN echo "--> usr local files before copying from other docker images" && \
