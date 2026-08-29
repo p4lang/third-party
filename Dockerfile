@@ -79,14 +79,34 @@ ENV CC=gcc-11
 ENV CXX=g++-11
 
 # ===============================
+# PTF
+# ===============================
+FROM base-builder AS ptf
+COPY ./ptf /ptf/
+WORKDIR /ptf/
+RUN python3 -m pip install pcapy-ng --break-system-packages && \
+    python3 -m pip install -r requirements.txt --break-system-packages && \
+    python3 -m pip install . --break-system-packages
+
+# ===============================
 # nanomsg
 # ===============================
 FROM base-builder AS nanomsg
 COPY ./nanomsg /nanomsg/
-RUN echo "ls -l /nanomsg" && ls -l /nanomsg
 RUN mkdir -p /nanomsg/build
 WORKDIR /nanomsg/build
 RUN cmake .. && make DESTDIR=/output install
+
+# ===============================
+# nnpy
+# ===============================
+FROM base-builder AS nnpy
+COPY --from=nanomsg /output/usr/local /usr/local/
+COPY ./nnpy /nnpy/
+WORKDIR /nnpy/
+RUN ldconfig && \
+    python3 -m pip install wheel cffi --break-system-packages && \
+    python3 -m pip install --no-build-isolation . --break-system-packages
 
 # ===============================
 # Thrift
@@ -108,6 +128,9 @@ RUN ./bootstrap.sh && \
     make && \
     make DESTDIR=/output install-strip
 
+WORKDIR /thrift/lib/py/
+RUN python3 -m pip install . --break-system-packages
+
 # ===============================
 # gRPC
 # ===============================
@@ -125,6 +148,10 @@ RUN cmake ../.. \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_CXX_STANDARD_REQUIRED=ON && \
     make -j$(nproc) DESTDIR=/output install
+
+WORKDIR /grpc/
+
+RUN python3 -m pip install grpcio --break-system-packages
 
 # ===============================
 # libyang
@@ -172,7 +199,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python-is-python3 && \
     rm -rf /var/lib/apt/lists/*
 
+COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
+COPY --from=nnpy /output/usr/local /usr/local/
 COPY --from=thrift /output/usr/local /usr/local/
 COPY --from=grpc /output/usr/local /usr/local/
 COPY --from=libyang /output/usr/local /usr/local/
