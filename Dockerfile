@@ -154,9 +154,6 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
 # ===============================
 FROM ubuntu:24.04
 
-COPY ./tools /tools/
-RUN echo "ls -l /tools" && ls -l /tools
-
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -179,6 +176,7 @@ COPY --from=libyang /output/usr/local /usr/local/
 COPY --from=sysrepo /output/usr/local /usr/local/
 COPY --from=sysrepo /output/etc /etc/
 
-RUN ldconfig
-RUN date > /usr/local/jafinger-timestamp && cat /usr/local/jafinger-timestamp
-RUN /tools/show-python-packages.sh
+RUN ldconfig && date > /usr/local/jafinger-timestamp && cat /usr/local/jafinger-timestamp
+
+COPY ./tools /tools/
+RUN echo "ls -l /tools" && ls -l /tools && /tools/show-python-packages.sh
