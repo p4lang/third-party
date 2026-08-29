@@ -74,9 +74,11 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
     python3-pip \
     python3-setuptools && \
     ldconfig && \
-    mkdir -p /output/usr/local && \
-    curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    source $HOME/.local/bin/env && \
+    mkdir -p /output/usr/local
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+RUN source $HOME/.local/bin/env && \
     uv venv $HOME/p4-python-venv
 
 ENV CC=gcc-11
