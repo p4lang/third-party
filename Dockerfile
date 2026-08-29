@@ -86,7 +86,14 @@ COPY ./ptf /ptf/
 WORKDIR /ptf/
 RUN python3 -m pip install pcapy-ng --break-system-packages && \
     python3 -m pip install -r requirements.txt --break-system-packages && \
-    python3 -m pip install . --break-system-packages
+    python3 -m pip install . --break-system-packages && \
+    echo "--> id, whoami" && \
+    id && \
+    whoami && \
+    echo "--> cat /etc/os-release" && \
+    cat /etc/os-release && \
+    echo "--> contents of /output for ptf" && \
+    find /output
 
 # ===============================
 # nanomsg
@@ -95,7 +102,9 @@ FROM base-builder AS nanomsg
 COPY ./nanomsg /nanomsg/
 RUN mkdir -p /nanomsg/build
 WORKDIR /nanomsg/build
-RUN cmake .. && make DESTDIR=/output install
+RUN cmake .. && make DESTDIR=/output install && \
+    echo "--> contents of /output for nanomsg" && \
+    find /output
 
 # ===============================
 # nnpy
@@ -106,7 +115,9 @@ COPY ./nnpy /nnpy/
 WORKDIR /nnpy/
 RUN ldconfig && \
     python3 -m pip install wheel cffi --break-system-packages && \
-    python3 -m pip install --no-build-isolation . --break-system-packages
+    python3 -m pip install --no-build-isolation . --break-system-packages && \
+    echo "--> contents of /output for nnpy" && \
+    find /output
 
 # ===============================
 # Thrift
@@ -129,7 +140,9 @@ RUN ./bootstrap.sh && \
     make DESTDIR=/output install-strip
 
 WORKDIR /thrift/lib/py/
-RUN python3 -m pip install . --break-system-packages
+RUN python3 -m pip install . --break-system-packages && \
+    echo "--> contents of /output for thrift" && \
+    find /output
 
 # ===============================
 # gRPC
@@ -151,7 +164,9 @@ RUN cmake ../.. \
 
 WORKDIR /grpc/
 
-RUN python3 -m pip install grpcio --break-system-packages
+RUN python3 -m pip install grpcio --break-system-packages && \
+    echo "--> contents of /output for grpc" && \
+    find /output
 
 # ===============================
 # libyang
@@ -160,7 +175,9 @@ FROM base-builder AS libyang
 COPY ./libyang /libyang/
 RUN mkdir -p /libyang/build
 WORKDIR /libyang/build
-RUN cmake .. && make DESTDIR=/output install
+RUN cmake .. && make DESTDIR=/output install && \
+    echo "--> contents of /output for libyang" && \
+    find /output
 
 # ===============================
 # sysrepo
@@ -174,7 +191,9 @@ WORKDIR /sysrepo/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_EXAMPLES=Off \
     -DCALL_TARGET_BINS_DIRECTLY=Off .. && \
-    make DESTDIR=/output install
+    make DESTDIR=/output install && \
+    echo "--> contents of /output for sysrepo" && \
+    find /output
 
 # ===============================
 # Final Runtime Image (Ubuntu 24.04)
@@ -182,7 +201,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
 FROM ubuntu:24.04
 
 COPY ./tools /tools/
-RUN echo "ls -l /tools" && ls -l /tools && /tools/show-python-packages.sh
+RUN echo "--> ls -l /tools before show #1" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #1"
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -199,6 +218,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python-is-python3 && \
     rm -rf /var/lib/apt/lists/*
 
+RUN echo "--> usr local files before copying from other docker images" && \
+    find /usr/local -ls && \
+    echo "--> end"
 COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
 COPY --from=nnpy /output/usr/local /usr/local/
@@ -208,7 +230,11 @@ COPY --from=libyang /output/usr/local /usr/local/
 COPY --from=sysrepo /output/usr/local /usr/local/
 COPY --from=sysrepo /output/etc /etc/
 
+RUN echo "--> usr local files after copying from other docker images" && \
+    find /usr/local -ls && \
+    echo "--> end"
+
 RUN ldconfig && date > /usr/local/jafinger-timestamp && cat /usr/local/jafinger-timestamp
 
 COPY ./tools /tools/
-RUN echo "ls -l /tools" && ls -l /tools && /tools/show-python-packages.sh
+RUN echo "--> ls -l /tools before show #2" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #2"
