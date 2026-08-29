@@ -192,9 +192,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN echo "--> usr local files before copying from other docker images" && \
     find /usr/local -ls && \
     echo "--> end"
-COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
-COPY --from=nnpy /output/usr/local /usr/local/
 COPY --from=thrift /output/usr/local /usr/local/
 COPY --from=grpc /output/usr/local /usr/local/
 COPY --from=libyang /output/usr/local /usr/local/
