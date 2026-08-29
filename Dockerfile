@@ -76,7 +76,8 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
     ldconfig && \
     mkdir -p /output/usr/local && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    uv venv /root/p4-python-venv
+    source $HOME/.local/bin/env && \
+    uv venv $HOME/p4-python-venv
 
 ENV CC=gcc-11
 ENV CXX=g++-11
@@ -187,7 +188,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python-is-python3 && \
     rm -rf /var/lib/apt/lists/* && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    uv venv /root/p4-python-venv
+    source $HOME/.local/bin/env && \
+    uv venv $HOME/p4-python-venv
 
 RUN echo "--> usr local files before copying from other docker images" && \
     find /usr/local -ls && \
@@ -205,7 +207,9 @@ RUN echo "--> usr local files after copying from other docker images" && \
 
 RUN ldconfig && date > /usr/local/jafinger-timestamp && cat /usr/local/jafinger-timestamp
 
-RUN source /root/p4-python-venv/bin/activate && uv pip install thrift==0.13.0
+RUN source $HOME/.local/bin/env && \
+    source $HOME/p4-python-venv/bin/activate && \
+    uv pip install thrift==0.13.0
 
 COPY ./tools /tools/
 RUN echo "--> ls -l /tools before show #2" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #2"
