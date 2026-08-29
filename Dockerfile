@@ -177,5 +177,7 @@ COPY --from=libyang /output/usr/local /usr/local/
 COPY --from=sysrepo /output/usr/local /usr/local/
 COPY --from=sysrepo /output/etc /etc/
 
-RUN ldconfig && /tools/show-python-packages.sh
+RUN ldconfig
+RUN echo "ls -l /tools" && ls -l /tools
+RUN /tools/show-python-packages.sh
 RUN date > /usr/local/jafinger-timestamp
