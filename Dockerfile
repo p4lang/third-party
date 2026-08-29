@@ -46,6 +46,7 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
     automake \
     bison \
     build-essential \
+    curl \
     gcc-11 \
     g++-11 \
     ca-certificates \
@@ -73,27 +74,12 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
     python3-pip \
     python3-setuptools && \
     ldconfig && \
-    mkdir -p /output/usr/local
+    mkdir -p /output/usr/local && \
+    curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    uv venv /root/p4-python-venv
 
 ENV CC=gcc-11
 ENV CXX=g++-11
-
-# ===============================
-# PTF
-# ===============================
-FROM base-builder AS ptf
-COPY ./ptf /ptf/
-WORKDIR /ptf/
-RUN python3 -m pip install pcapy-ng --break-system-packages && \
-    python3 -m pip install -r requirements.txt --break-system-packages && \
-    python3 -m pip install . --break-system-packages && \
-    echo "--> id, whoami" && \
-    id && \
-    whoami && \
-    echo "--> cat /etc/os-release" && \
-    cat /etc/os-release && \
-    echo "--> contents of /output for ptf" && \
-    find /output
 
 # ===============================
 # nanomsg
@@ -104,19 +90,6 @@ RUN mkdir -p /nanomsg/build
 WORKDIR /nanomsg/build
 RUN cmake .. && make DESTDIR=/output install && \
     echo "--> contents of /output for nanomsg" && \
-    find /output
-
-# ===============================
-# nnpy
-# ===============================
-FROM base-builder AS nnpy
-COPY --from=nanomsg /output/usr/local /usr/local/
-COPY ./nnpy /nnpy/
-WORKDIR /nnpy/
-RUN ldconfig && \
-    python3 -m pip install wheel cffi --break-system-packages && \
-    python3 -m pip install --no-build-isolation . --break-system-packages && \
-    echo "--> contents of /output for nnpy" && \
     find /output
 
 # ===============================
@@ -139,9 +112,7 @@ RUN ./bootstrap.sh && \
     make && \
     make DESTDIR=/output install-strip
 
-WORKDIR /thrift/lib/py/
-RUN python3 -m pip install . --break-system-packages && \
-    echo "--> contents of /output for thrift" && \
+RUN echo "--> contents of /output for thrift" && \
     find /output
 
 # ===============================
@@ -162,10 +133,7 @@ RUN cmake ../.. \
     -DCMAKE_CXX_STANDARD_REQUIRED=ON && \
     make -j$(nproc) DESTDIR=/output install
 
-WORKDIR /grpc/
-
-RUN python3 -m pip install grpcio --break-system-packages && \
-    echo "--> contents of /output for grpc" && \
+RUN echo "--> contents of /output for grpc" && \
     find /output
 
 # ===============================
@@ -207,6 +175,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ccache \
+    curl \
     libpcap-dev \
     python3-minimal \
     tcpdump \
@@ -216,7 +185,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libev4 \
     libprotobuf-c1 \
     python-is-python3 && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    uv venv /root/p4-python-venv
 
 RUN echo "--> usr local files before copying from other docker images" && \
     find /usr/local -ls && \
@@ -235,6 +206,8 @@ RUN echo "--> usr local files after copying from other docker images" && \
     echo "--> end"
 
 RUN ldconfig && date > /usr/local/jafinger-timestamp && cat /usr/local/jafinger-timestamp
+
+RUN source /root/p4-python-venv/bin/activate && uv pip install thrift==0.13.0
 
 COPY ./tools /tools/
 RUN echo "--> ls -l /tools before show #2" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #2"
