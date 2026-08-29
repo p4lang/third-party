@@ -70,6 +70,14 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
 
 RUN pip3 install "Cython<3"
 
+# Build PTF.
+FROM base-builder as ptf
+COPY ./ptf /ptf/
+WORKDIR /ptf/
+RUN pip3 install --user --ignore-installed wheel pypcap && \
+    pip3 install --user --ignore-installed -rrequirements.txt && \
+    pip3 install --user --ignore-installed .
+
 # Build nanomsg.
 FROM base-builder as nanomsg
 COPY ./nanomsg /nanomsg/
@@ -77,6 +85,15 @@ RUN mkdir -p /nanomsg/build/
 WORKDIR /nanomsg/build/
 RUN cmake .. && \
     make DESTDIR=/output install
+
+# Build nnpy.
+FROM base-builder as nnpy
+COPY --from=nanomsg /output/usr/local /usr/local/
+COPY ./nnpy /nnpy/
+WORKDIR /nnpy/
+RUN ldconfig && \
+    pip3 install --user --ignore-installed wheel cffi && \
+    pip3 install --user --ignore-installed .
 
 # Build Thrift.
 FROM base-builder as thrift
@@ -201,18 +218,24 @@ LABEL maintainer="P4 Developers <p4-dev@lists.p4.org>"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAKEFLAGS=-j2
 RUN CCACHE_RUNTIME_DEPS="ccache" && \
+    PTF_RUNTIME_DEPS="libpcap-dev python3-minimal tcpdump" && \
+    NNPY_RUNTIME_DEPS="python3-minimal" && \
     THRIFT_RUNTIME_DEPS="libssl1.1 python3-minimal" && \
     GRPC_RUNTIME_DEPS="libssl-dev python3-minimal python3-setuptools" && \
     SYSREPO_RUNTIME_DEPS="libpcre3 libavl1 libev4 libprotobuf-c1" && \
     apt-get update && \
     apt-get install -y --no-install-recommends $CCACHE_RUNTIME_DEPS \
+                                               $PTF_RUNTIME_DEPS \
+                                               $NNPY_RUNTIME_DEPS \
                                                $THRIFT_RUNTIME_DEPS \
                                                $GRPC_RUNTIME_DEPS \
                                                $SYSREPO_RUNTIME_DEPS \
                                                python-is-python3 && \
     rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 # Copy files from the build containers.
+COPY --from=ptf /output/usr/local /usr/local/
 COPY --from=nanomsg /output/usr/local /usr/local/
+COPY --from=nnpy /output/usr/local /usr/local/
 COPY --from=thrift /output/usr/local /usr/local/
 COPY --from=protobuf /output/usr/local /usr/local/
 COPY --from=grpc /output/usr/local /usr/local/
