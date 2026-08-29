@@ -153,6 +153,8 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
 # ===============================
 FROM ubuntu:24.04
 
+COPY ./tools /tools/
+
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -175,7 +177,5 @@ COPY --from=libyang /output/usr/local /usr/local/
 COPY --from=sysrepo /output/usr/local /usr/local/
 COPY --from=sysrepo /output/etc /etc/
 
-RUN ldconfig
-RUN for j in $(find / -name dist-packages 2>/dev/null); do echo "----------------------------------------------------------------------"; echo $j; find $j | egrep '(scapy|ptf|nnpy)'; done
-
+RUN ldconfig && /tools/show-python-packages.sh
 RUN date > /usr/local/jafinger-timestamp
