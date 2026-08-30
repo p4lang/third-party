@@ -59,7 +59,7 @@ jobs:
         file: Dockerfile.24
         context: .
         load: true
-        tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}-24
+        tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
     - name: Test Docker image
@@ -71,7 +71,7 @@ jobs:
       with:
         context: .
         push: true
-        tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}-24
+        tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}
     - name: Build and push Dockerfile.20 image if needed
       if: ${{ github.repository == 'p4lang/third-party' && github.event_name == 'push' }}
       uses: docker/build-push-action@v2
