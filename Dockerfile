@@ -222,5 +222,6 @@ RUN echo "--> ls -l /tools before show #2" && ls -l /tools && /tools/show-python
 RUN uv pip install thrift==0.13.0
 RUN echo "source \$HOME/.local/bin/env" >> $HOME/.bashrc
 RUN echo "source \$HOME/p4-python-venv/bin/activate" >> $HOME/.bashrc
+RUN echo "--> cat .bashrc" && cat $HOME/.bashrc
 
 RUN echo "--> ls -l /tools before show #3" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #3"
