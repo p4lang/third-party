@@ -106,7 +106,7 @@ WORKDIR /thrift/
 RUN ./bootstrap.sh && \
     ./configure \
     --with-cpp=yes \
-    --with-python=yes \
+    --with-python=no \
     --with-c_glib=no \
     --with-java=no \
     --with-ruby=no \
