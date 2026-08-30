@@ -16,16 +16,16 @@ function test_python_import() {
 echo "--> contents of file jafinger-timestamp"
 docker run $THIRD_PARTY_IMAGE cat /usr/local/jafinger-timestamp
 
-echo "--> cat $HOME/.bashrc:"
-cat $HOME/.bashrc
-echo "--> HOME:"
-echo $HOME
-echo "--> PATH:"
-echo $PATH
-echo "--> VIRTUAL_ENV:"
-echo $VIRTUAL_ENV
-echo "--> which uv"
-which uv
+echo "--> docker run $THIRD_PARTY_IMAGE cat $HOME/.bashrc:"
+docker run $THIRD_PARTY_IMAGE cat $HOME/.bashrc
+echo "--> docker run $THIRD_PARTY_IMAGE HOME:"
+docker run $THIRD_PARTY_IMAGE echo $HOME
+echo "--> docker run $THIRD_PARTY_IMAGE PATH:"
+docker run $THIRD_PARTY_IMAGE echo $PATH
+echo "--> docker run $THIRD_PARTY_IMAGE VIRTUAL_ENV:"
+docker run $THIRD_PARTY_IMAGE echo $VIRTUAL_ENV
+echo "--> docker run $THIRD_PARTY_IMAGE which uv"
+docker run $THIRD_PARTY_IMAGE which uv
 
 SAVE=$PWD
 for j in $(docker run $THIRD_PARTY_IMAGE find / -name site-packages 2>/dev/null)
