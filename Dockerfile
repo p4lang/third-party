@@ -77,15 +77,11 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
     mkdir -p /output/usr/local
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-
+ENV HOME=/root
 # Add uv to the system PATH so it is available in this image
 ENV PATH="$HOME/.local/bin:$PATH"
-
-RUN ls -l $HOME
-RUN ls -l $HOME/.local/bin
-RUN which venv
-
 RUN uv venv $HOME/p4-python-venv
+ENV VIRTUAL_ENV=$HOME/p4-python-venv
 
 ENV CC=gcc-11
 ENV CXX=g++-11
@@ -197,12 +193,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Add uv to the system PATH so it is available globally
-ENV PATH="$HOME/.local/bin:$PATH"
-
+ENV HOME=/root
+ENV PATH=$HOME/.local/bin:$PATH
 RUN uv venv $HOME/p4-python-venv
-
 ENV VIRTUAL_ENV=$HOME/p4-python-venv
 
 RUN echo "--> usr local files before copying from other docker images" && \
