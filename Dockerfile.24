@@ -192,7 +192,10 @@ COPY --from=libyang /output/usr/local /usr/local/
 COPY --from=sysrepo /output/usr/local /usr/local/
 COPY --from=sysrepo /output/etc /etc/
 
-RUN ldconfig && \
-    uv pip install thrift==0.13.0 && \
-    echo "source \$HOME/.local/bin/env" >> $HOME/.bashrc && \
+RUN ldconfig
+
+RUN uv pip install thrift==0.13.0 && \
     echo "source \$HOME/p4-python-venv/bin/activate" >> $HOME/.bashrc
+
+RUN echo "--> tail -n 20 /root/.bashrc" && \
+    tail -n 20 /root/.bashrc
