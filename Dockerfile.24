@@ -196,6 +196,3 @@ RUN ldconfig
 
 RUN uv pip install thrift==0.13.0 && \
     echo "source \$HOME/p4-python-venv/bin/activate" >> $HOME/.bashrc
-
-RUN echo "--> tail -n 20 /root/.bashrc" && \
-    tail -n 20 /root/.bashrc
