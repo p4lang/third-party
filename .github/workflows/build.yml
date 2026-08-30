@@ -61,9 +61,10 @@ jobs:
     - name: Build and export to Docker
       uses: docker/build-push-action@v2
       with:
+        file: Dockerfile.24
         context: .
         load: true
-        tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}
+        tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}-24
         cache-from: type=gha
         cache-to: type=gha,mode=max
     - name: Test Docker image
