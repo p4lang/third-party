@@ -26,11 +26,6 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: recursive
-    - name: Examine parts of checkout
-      shell: bash
-      run: |
-        echo "ls -l ./tools"
-        ls -l ./tools
     - name: Determine Docker image tag
       id: get-tag
       shell: bash
@@ -70,11 +65,6 @@ jobs:
     - name: Test Docker image
       run: |
         ./tools/run_tests
-    - name: Debug print variables
-      run: |
-        echo "github.repository: ${{ github.repository }}"
-        echo "github.event_name: ${{ github.event_name }}"
-        echo "steps.get-tag.outputs.tag: ${{ steps.get-tag.outputs.tag }}"
     - name: Build and push to Docker if needed
       if: ${{ github.repository == 'p4lang/third-party' && github.event_name == 'push' }}
       uses: docker/build-push-action@v2

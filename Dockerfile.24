@@ -93,9 +93,7 @@ FROM base-builder AS nanomsg
 COPY ./nanomsg /nanomsg/
 RUN mkdir -p /nanomsg/build
 WORKDIR /nanomsg/build
-RUN cmake .. && make DESTDIR=/output install && \
-    echo "--> contents of /output for nanomsg" && \
-    find /output
+RUN cmake .. && make DESTDIR=/output install
 
 # ===============================
 # Thrift
@@ -117,9 +115,6 @@ RUN ./bootstrap.sh && \
     make && \
     make DESTDIR=/output install-strip
 
-RUN echo "--> contents of /output for thrift" && \
-    find /output
-
 # ===============================
 # gRPC
 # ===============================
@@ -138,9 +133,6 @@ RUN cmake ../.. \
     -DCMAKE_CXX_STANDARD_REQUIRED=ON && \
     make -j$(nproc) DESTDIR=/output install
 
-RUN echo "--> contents of /output for grpc" && \
-    find /output
-
 # ===============================
 # libyang
 # ===============================
@@ -148,9 +140,7 @@ FROM base-builder AS libyang
 COPY ./libyang /libyang/
 RUN mkdir -p /libyang/build
 WORKDIR /libyang/build
-RUN cmake .. && make DESTDIR=/output install && \
-    echo "--> contents of /output for libyang" && \
-    find /output
+RUN cmake .. && make DESTDIR=/output install
 
 # ===============================
 # sysrepo
@@ -164,17 +154,12 @@ WORKDIR /sysrepo/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_EXAMPLES=Off \
     -DCALL_TARGET_BINS_DIRECTLY=Off .. && \
-    make DESTDIR=/output install && \
-    echo "--> contents of /output for sysrepo" && \
-    find /output
+    make DESTDIR=/output install
 
 # ===============================
 # Final Runtime Image (Ubuntu 24.04)
 # ===============================
 FROM ubuntu:24.04
-
-COPY ./tools /tools/
-RUN echo "--> ls -l /tools before show #1" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #1"
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -200,9 +185,6 @@ ENV VIRTUAL_ENV=$HOME/p4-python-venv
 RUN uv venv $VIRTUAL_ENV
 ENV PATH=$VIRTUAL_ENV/bin:$PATH
 
-RUN echo "--> usr local files before copying from other docker images" && \
-    find /usr/local -ls && \
-    echo "--> end"
 COPY --from=nanomsg /output/usr/local /usr/local/
 COPY --from=thrift /output/usr/local /usr/local/
 COPY --from=grpc /output/usr/local /usr/local/
@@ -210,18 +192,7 @@ COPY --from=libyang /output/usr/local /usr/local/
 COPY --from=sysrepo /output/usr/local /usr/local/
 COPY --from=sysrepo /output/etc /etc/
 
-RUN echo "--> usr local files after copying from other docker images" && \
-    find /usr/local -ls && \
-    echo "--> end"
-
-RUN ldconfig && date > /usr/local/jafinger-timestamp && cat /usr/local/jafinger-timestamp
-
-COPY ./tools /tools/
-RUN echo "--> ls -l /tools before show #2" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #2"
-
-RUN uv pip install thrift==0.13.0
-RUN echo "source \$HOME/.local/bin/env" >> $HOME/.bashrc
-RUN echo "source \$HOME/p4-python-venv/bin/activate" >> $HOME/.bashrc
-RUN echo "--> cat .bashrc" && cat $HOME/.bashrc
-
-RUN echo "--> ls -l /tools before show #3" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #3"
+RUN ldconfig && \
+    uv pip install thrift==0.13.0 && \
+    echo "source \$HOME/.local/bin/env" >> $HOME/.bashrc && \
+    echo "source \$HOME/p4-python-venv/bin/activate" >> $HOME/.bashrc
