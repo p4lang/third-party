@@ -81,7 +81,7 @@ ENV HOME=/root
 # Add uv to the system PATH so it is available in this image
 ENV PATH="$HOME/.local/bin:$PATH"
 ENV VIRTUAL_ENV=$HOME/p4-python-venv
-RUN uv venv $VIRTUAL_ENV
+RUN uv venv --seed $VIRTUAL_ENV
 
 ENV CC=gcc-11
 ENV CXX=g++-11
@@ -182,7 +182,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV HOME=/root
 ENV PATH=$HOME/.local/bin:$PATH
 ENV VIRTUAL_ENV=$HOME/p4-python-venv
-RUN uv venv $VIRTUAL_ENV
+RUN uv venv --seed $VIRTUAL_ENV
 ENV PATH=$VIRTUAL_ENV/bin:$PATH
 
 COPY --from=nanomsg /output/usr/local /usr/local/
