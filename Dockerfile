@@ -81,6 +81,10 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 # Add uv to the system PATH so it is available in this image
 ENV PATH="$HOME/.local/bin:$PATH"
 
+RUN ls -l $HOME
+RUN ls -l $HOME/.local/bin
+RUN which venv
+
 RUN uv venv $HOME/p4-python-venv
 
 ENV CC=gcc-11
