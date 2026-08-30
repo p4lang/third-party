@@ -80,8 +80,8 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV HOME=/root
 # Add uv to the system PATH so it is available in this image
 ENV PATH="$HOME/.local/bin:$PATH"
-RUN uv venv $HOME/p4-python-venv
 ENV VIRTUAL_ENV=$HOME/p4-python-venv
+RUN uv venv $VIRTUAL_ENV
 
 ENV CC=gcc-11
 ENV CXX=g++-11
@@ -196,8 +196,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV HOME=/root
 ENV PATH=$HOME/.local/bin:$PATH
-RUN uv venv $HOME/p4-python-venv
 ENV VIRTUAL_ENV=$HOME/p4-python-venv
+RUN uv venv $VIRTUAL_ENV
+ENV PATH=$VIRTUAL_ENV/bin:$PATH
 
 RUN echo "--> usr local files before copying from other docker images" && \
     find /usr/local -ls && \
@@ -219,5 +220,7 @@ COPY ./tools /tools/
 RUN echo "--> ls -l /tools before show #2" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #2"
 
 RUN uv pip install thrift==0.13.0
+RUN echo "source \$HOME/.local/bin/env" >> $HOME/.bashrc
+RUN echo "source \$HOME/p4-python-venv/bin/activate" >> $HOME/.bashrc
 
 RUN echo "--> ls -l /tools before show #3" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #3"
