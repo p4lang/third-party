@@ -179,6 +179,7 @@ RUN echo "--> ls -l /tools before show #1" && ls -l /tools && /tools/show-python
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     ccache \
     curl \
     libpcap-dev \
