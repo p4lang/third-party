@@ -215,7 +215,9 @@ RUN echo "--> usr local files after copying from other docker images" && \
 
 RUN ldconfig && date > /usr/local/jafinger-timestamp && cat /usr/local/jafinger-timestamp
 
-RUN uv pip install thrift==0.13.0
-
 COPY ./tools /tools/
 RUN echo "--> ls -l /tools before show #2" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #2"
+
+RUN uv pip install thrift==0.13.0
+
+RUN echo "--> ls -l /tools before show #3" && ls -l /tools && /tools/show-python-packages.sh && echo "--> after show #3"
