@@ -18,6 +18,7 @@ on:
     # 'stable' tag to be updated automatically as well, we can find a
     # workaround.
     - cron: '15 1 * * 0' # "At 01:15 on Sunday."
+  workflow_dispatch: # Allows manual runs
 
 jobs:
   build:
