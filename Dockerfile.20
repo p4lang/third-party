@@ -71,7 +71,7 @@ RUN apt-get update -qq && apt-get install -qq --no-install-recommends \
 RUN pip3 install "Cython<3"
 
 # Build PTF.
-FROM base-builder as ptf
+FROM base-builder AS ptf
 COPY ./ptf /ptf/
 WORKDIR /ptf/
 RUN pip3 install --user --ignore-installed wheel pypcap && \
@@ -79,7 +79,7 @@ RUN pip3 install --user --ignore-installed wheel pypcap && \
     pip3 install --user --ignore-installed .
 
 # Build nanomsg.
-FROM base-builder as nanomsg
+FROM base-builder AS nanomsg
 COPY ./nanomsg /nanomsg/
 RUN mkdir -p /nanomsg/build/
 WORKDIR /nanomsg/build/
@@ -87,7 +87,7 @@ RUN cmake .. && \
     make DESTDIR=/output install
 
 # Build nnpy.
-FROM base-builder as nnpy
+FROM base-builder AS nnpy
 COPY --from=nanomsg /output/usr/local /usr/local/
 COPY ./nnpy /nnpy/
 WORKDIR /nnpy/
@@ -96,7 +96,7 @@ RUN ldconfig && \
     pip3 install --user --ignore-installed .
 
 # Build Thrift.
-FROM base-builder as thrift
+FROM base-builder AS thrift
 COPY ./thrift /thrift/
 WORKDIR /thrift/
 RUN ./bootstrap.sh && \
@@ -116,7 +116,7 @@ WORKDIR /thrift/lib/py/
 RUN pip3 install --user --ignore-installed .
 
 # Build Protocol Buffers.
-FROM base-builder as protobuf
+FROM base-builder AS protobuf
 COPY ./protobuf /protobuf/
 WORKDIR /protobuf/
 RUN ./autogen.sh && \
@@ -161,7 +161,7 @@ RUN export PYTHON3_VERSION=`python3 -c 'import sys; version=sys.version_info[:3]
 # The gRPC build system should detect that a version of protobuf is already
 # installed and should not try to install the third-party one included as a
 # submodule in the grpc repository.
-FROM base-builder as grpc
+FROM base-builder AS grpc
 COPY --from=protobuf /output/usr/local /usr/local/
 RUN ldconfig
 COPY ./grpc /grpc/
@@ -192,7 +192,7 @@ RUN pip3 install --user "Cython==0.29.36"
 RUN env GRPC_PYTHON_BUILD_WITH_CYTHON=1 pip3 install --user --ignore-installed .
 
 # Build libyang
-FROM base-builder as libyang
+FROM base-builder AS libyang
 COPY ./libyang /libyang/
 RUN mkdir -p /libyang/build/
 WORKDIR /libyang/build/
@@ -200,7 +200,7 @@ RUN cmake .. && \
     make DESTDIR=/output install
 
 # Build sysrepo
-FROM base-builder as sysrepo
+FROM base-builder AS sysrepo
 COPY --from=libyang /output/usr/local /usr/local/
 RUN ldconfig
 COPY ./sysrepo /sysrepo/
