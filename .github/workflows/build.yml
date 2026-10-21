@@ -57,7 +57,7 @@ jobs:
     - name: Build and export to Docker
       uses: docker/build-push-action@v2
       with:
-        file: Dockerfile.24
+        file: Dockerfile.ubuntu-24.04
         context: .
         load: true
         tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}
@@ -70,15 +70,23 @@ jobs:
       if: ${{ github.repository == 'p4lang/third-party' && github.ref_name == 'main' && github.event_name != 'pull_request' }}
       uses: docker/build-push-action@v2
       with:
-        file: Dockerfile.24
+        file: Dockerfile.ubuntu-24.04
         context: .
         push: true
         tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}
-    - name: Build and push Dockerfile.20 image if needed
+    - name: Build and push Dockerfile.ubuntu-20.04 image if needed
       if: ${{ github.repository == 'p4lang/third-party' && github.ref_name == 'main' && github.event_name != 'pull_request' }}
       uses: docker/build-push-action@v2
       with:
         context: .
-        file: Dockerfile.20
+        file: Dockerfile.ubuntu-20.04
         push: true
-        tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}-20
+        tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}-ubuntu-20.04
+    - name: Build and push Dockerfile.ubuntu-26.04 image if needed
+      if: ${{ github.repository == 'p4lang/third-party' && github.ref_name == 'main' && github.event_name != 'pull_request' }}
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: Dockerfile.ubuntu-26.04
+        push: true
+        tags: p4lang/third-party:${{ steps.get-tag.outputs.tag }}-ubuntu-26.04
